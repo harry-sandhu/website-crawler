@@ -13,7 +13,7 @@ def main():
 
     console.print(f"[cyan]Opening {url}[/cyan]")
 
-    website = crawler.crawl(url)
+    website, page = crawler.crawl(url)
 
     page_data = website.page
     browser_data = website.browser
@@ -23,7 +23,10 @@ def main():
 
     # Run all audits
     engine = AuditEngine()
-    report = engine.run(website)
+    report = engine.run(
+        website,
+        page,
+    )
 
     console.print("\n========== SUMMARY ==========\n")
 
@@ -50,6 +53,17 @@ def main():
     console.print(f"Schema           : {len(page_data['schema'])}")
     console.print(f"Robots.txt       : {'Yes' if website.robots['exists'] else 'No'}")
     console.print(f"Sitemap.xml      : {'Yes' if website.sitemap['exists'] else 'No'}")
+    console.print(
+        f"Desktop Shot     : {website.screenshots['desktop']['normal']}"
+    )
+    
+    console.print(
+        f"Desktop Full     : {website.screenshots['desktop']['full']}"
+    )
+    
+    console.print(
+        f"iPhone 15 Shot   : {website.screenshots['iphone_15']['normal']}"
+    )
 
     console.print()
 
