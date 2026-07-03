@@ -4,80 +4,269 @@ from datetime import datetime
 from .models import ReportModel
 from .sections import SectionBuilder
 
+from urllib.parse import urlparse
+
+import shutil
+
+
 
 class HTMLReportBuilder:
 
     def __init__(self):
-
-        self.output_dir = Path("output/reports")
-        self.output_dir.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
 
         self.template = (
             Path(__file__).parent
             / "templates"
             / "report.html"
         )
+    
+        self.assets_source = (
+            Path(__file__).parent
+            / "assets"
+        )
+    
+        self.output_root = Path("output")
+    
+        self.output_root.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
+    def prepare_output(
+        self,
+        url: str,
+    ):
+    
+        domain = (
+            urlparse(url)
+            .netloc
+            .replace(":", "_")
+        )
+    
+        root = (
+            self.output_root
+            / domain
+        )
+    
+        assets = root / "assets"
+    
+        screenshots = root / "screenshots"
+    
+        data = root / "data"
+    
+        root.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+    
+        assets.mkdir(
+            exist_ok=True,
+        )
+    
+        screenshots.mkdir(
+            exist_ok=True,
+        )
+    
+        data.mkdir(
+            exist_ok=True,
+        )
+    
+        return {
+    
+            "root": root,
+    
+            "assets": assets,
+    
+            "screenshots": screenshots,
+    
+            "data": data,
+    
+        }   
+
+    def copy_assets(
+        self,
+        output,
+    ):
+    
+        assets = (
+    
+            "style.css",
+    
+            "app.js",
+    
+            "logo.png",
+    
+        )
+    
+        for asset in assets:
+    
+            source = (
+                self.assets_source
+                / asset
+            )
+    
+            if not source.is_file():
+    
+                print(
+                    f"[Warning] Missing asset: {source}"
+                )
+    
+                continue
+    
+            destination = (
+                output["assets"]
+                / asset
+            )
+    
+            shutil.copy2(
+                source,
+                destination,
+            )
+
+    def copy_screenshots(
+        self,
+        screenshots,
+        output,
+    ):
+    
+        for device, files in screenshots.items():
+    
+            for key in ("normal", "full"):
+    
+                path = files.get(key)
+    
+                if not path:
+                    continue
+    
+                source = Path(path)
+    
+                if not source.is_file():
+    
+                    print(
+                        f"[Warning] Missing screenshot: {source}"
+                    )
+    
+                    continue
+    
+                destination = (
+                    output["screenshots"]
+                    / source.name
+                )
+    
+                shutil.copy2(
+                    source,
+                    destination,
+                )
+    
+    # ----------------------------------
+    
     def build(
         self,
         website,
         report,
         score,
     ):
-
+    
+        # ----------------------------------
+        # Prepare Output Folder
+        # ----------------------------------
+    
+        output = self.prepare_output(
+            website.url
+        )
+    
+        self.copy_assets(
+            output
+        )
+    
+        self.copy_screenshots(
+            website.screenshots,
+            output,
+        )
+    
+        # ----------------------------------
+        # Screenshot Paths
+        # ----------------------------------
+    
+        screenshots = {}
+    
+        for device, files in website.screenshots.items():
+    
+            screenshots[device] = {}
+    
+            for key in ("normal", "full"):
+    
+                path = files.get(key)
+    
+                if not path:
+                    continue
+    
+                screenshots[device][key] = (
+                    "screenshots/"
+                    + Path(path).name
+                )
+    
+        # ----------------------------------
+        # Report Model
+        # ----------------------------------
+    
         model = ReportModel(
-
+    
             url=website.url,
-
+    
             title=website.title,
-
+    
             generated_at=datetime.now().strftime(
                 "%Y-%m-%d %H:%M:%S"
             ),
-
+    
             overall_score=score.overall,
-
+    
             category_scores=score.categories,
-
+    
             critical=score.critical,
-
+    
             high=score.high,
-
+    
             medium=score.medium,
-
+    
             low=score.low,
-
+    
             total_issues=score.total_issues,
-
+    
             browser=website.browser,
-
+    
             page=website.page,
-
-            screenshots=website.screenshots,
-
+    
+            screenshots=screenshots,
+    
             sections=SectionBuilder.build(
                 report
             ),
-
+    
         )
-
-        html = self.render(model)
-
-        output = (
-            self.output_dir
+    
+        # ----------------------------------
+        # Generate HTML
+        # ----------------------------------
+    
+        html = self.render(
+            model
+        )
+    
+        report_path = (
+            output["root"]
             / "report.html"
         )
-
-        output.write_text(
+    
+        report_path.write_text(
             html,
             encoding="utf-8",
         )
-
-        return str(output)
-
+    
+        return str(
+            report_path
+        )
     # ----------------------------------
     
     def render(
@@ -88,6 +277,10 @@ class HTMLReportBuilder:
         html = self.template.read_text(
             encoding="utf-8"
         )
+    
+        # ----------------------------------
+        # Basic Information
+        # ----------------------------------
     
         html = html.replace(
             "{{TITLE}}",
@@ -104,10 +297,18 @@ class HTMLReportBuilder:
             model.generated_at,
         )
     
+        # ----------------------------------
+        # Overall Score
+        # ----------------------------------
+    
         html = html.replace(
             "{{OVERALL_SCORE}}",
             f"{model.overall_score:.1f}",
         )
+    
+        # ----------------------------------
+        # Issue Counts
+        # ----------------------------------
     
         html = html.replace(
             "{{CRITICAL}}",
@@ -141,6 +342,11 @@ class HTMLReportBuilder:
         html = html.replace(
             "{{DESKTOP}}",
             model.screenshots["desktop"]["normal"],
+        )
+    
+        html = html.replace(
+            "{{DESKTOP_FULL}}",
+            model.screenshots["desktop"]["full"],
         )
     
         html = html.replace(

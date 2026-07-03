@@ -7,9 +7,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Website Audit Report</title>
+<title>{{TITLE}} - Audit Report</title>
 
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="assets/style.css">
 
 </head>
 
@@ -47,7 +47,11 @@
 
             <strong>URL:</strong>
 
-            <a href="{{URL}}" target="_blank">
+            <a
+                href="{{URL}}"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
 
                 {{URL}}
 
@@ -139,17 +143,46 @@
 
     <section>
 
-        <h2>Screenshots</h2>
+    <h2>Screenshots</h2>
 
-        <div class="screenshots">
+    <div class="screenshots">
 
-            <img src="../../{{DESKTOP}}" alt="Desktop">
+        <div class="shot">
 
-            <img src="../../{{MOBILE}}" alt="Mobile">
+            <h3>Desktop</h3>
+
+            <img
+                src="{{DESKTOP}}"
+                alt="Desktop Screenshot"
+            >
 
         </div>
 
-    </section>
+        <div class="shot">
+
+            <h3>Desktop Full</h3>
+
+            <img
+                src="{{DESKTOP_FULL}}"
+                alt="Desktop Full Screenshot"
+            >
+
+        </div>
+
+        <div class="shot">
+
+            <h3>Mobile</h3>
+
+            <img
+                src="{{MOBILE}}"
+                alt="Mobile Screenshot"
+            >
+
+        </div>
+
+    </div>
+
+</section>
 
     <!-- ====================================== -->
     <!-- Issues -->
@@ -165,7 +198,7 @@
 
 </div>
 
-<script src="../assets/app.js"></script>
+<script src="assets/app.js"></script>
 
 </body>
 
