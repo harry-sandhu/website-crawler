@@ -13,7 +13,8 @@ def main():
 
     console.print(f"[cyan]Opening {url}[/cyan]")
 
-    website, page = crawler.crawl(url)
+    website = crawler.crawl(url)
+    page = website.page_object
 
     page_data = website.page
     browser_data = website.browser

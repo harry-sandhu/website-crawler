@@ -4,36 +4,57 @@ from audit.seo import run_seo_audit
 from audit.network import run_network_audit
 from audit.console import run_console_audit
 from audit.security import run_security_audit
-
 from audit.responsive import run_responsive_audit
-from browser.screenshots import ScreenshotManager
+from audit.lighthouse import run_lighthouse_audit
 
 
 class AuditEngine:
+
     def __init__(self):
+
         self.audit_modules = [
-            lambda website, page: run_seo_audit(website.page),
-            lambda website, page: run_network_audit(website.browser),
-            lambda website, page: run_console_audit(website.browser),
-            lambda website, page: run_security_audit(website),
-            lambda website, page: run_responsive_audit(
-                page,
-                ScreenshotManager(),
+
+            lambda website: run_seo_audit(
+                website.page
             ),
+
+            lambda website: run_network_audit(
+                website.browser
+            ),
+
+            lambda website: run_console_audit(
+                website.browser
+            ),
+
+            lambda website: run_security_audit(
+                website
+            ),
+
+            lambda website: run_responsive_audit(
+                website.page_object,
+                website.screenshot_manager,
+            ),
+
+            lambda website: run_lighthouse_audit(
+                website.url
+            ),
+
         ]
 
-    def run(self, website, page):
+    def run(self, website):
+
         report = AuditReport()
 
         for module in self.audit_modules:
+
             try:
+
                 report.issues.extend(
-                    module(
-                        website,
-                        page,
-                    )
+                    module(website)
                 )
+
             except Exception as e:
+
                 print(f"[Audit Error] {module}: {e}")
 
         return report
