@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Website Audit Report</title>
+
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- ====================================== -->
+    <!-- Header -->
+    <!-- ====================================== -->
+
+    <header>
+
+        <h1>Website Audit Report</h1>
+
+        <div class="subtitle">
+
+            Generated on {{DATE}}
+
+        </div>
+
+    </header>
+
+    <!-- ====================================== -->
+    <!-- Website -->
+    <!-- ====================================== -->
+
+    <section class="card">
+
+        <h2>Website</h2>
+
+        <p><strong>Title:</strong> {{TITLE}}</p>
+
+        <p>
+
+            <strong>URL:</strong>
+
+            <a href="{{URL}}" target="_blank">
+
+                {{URL}}
+
+            </a>
+
+        </p>
+
+    </section>
+
+    <!-- ====================================== -->
+    <!-- Overall Score -->
+    <!-- ====================================== -->
+
+    <section class="score">
+
+        <div class="score-circle">
+
+            {{OVERALL_SCORE}}
+
+        </div>
+
+        <h2>Overall Website Health</h2>
+
+    </section>
+
+    <!-- ====================================== -->
+    <!-- Issue Counts -->
+    <!-- ====================================== -->
+
+    <section class="grid">
+
+        <div class="card critical">
+
+            <h3>Critical</h3>
+
+            <p>{{CRITICAL}}</p>
+
+        </div>
+
+        <div class="card high">
+
+            <h3>High</h3>
+
+            <p>{{HIGH}}</p>
+
+        </div>
+
+        <div class="card medium">
+
+            <h3>Medium</h3>
+
+            <p>{{MEDIUM}}</p>
+
+        </div>
+
+        <div class="card low">
+
+            <h3>Low</h3>
+
+            <p>{{LOW}}</p>
+
+        </div>
+
+        <div class="card">
+
+            <h3>Total Issues</h3>
+
+            <p>{{TOTAL}}</p>
+
+        </div>
+
+    </section>
+
+    <!-- ====================================== -->
+    <!-- Category Scores -->
+    <!-- ====================================== -->
+
+    <section>
+
+        <h2>Category Scores</h2>
+
+        {{CATEGORY_SCORES}}
+
+    </section>
+
+    <!-- ====================================== -->
+    <!-- Screenshots -->
+    <!-- ====================================== -->
+
+    <section>
+
+        <h2>Screenshots</h2>
+
+        <div class="screenshots">
+
+            <img src="../../{{DESKTOP}}" alt="Desktop">
+
+            <img src="../../{{MOBILE}}" alt="Mobile">
+
+        </div>
+
+    </section>
+
+    <!-- ====================================== -->
+    <!-- Issues -->
+    <!-- ====================================== -->
+
+    <section>
+
+        <h2>Audit Findings</h2>
+
+        {{SECTIONS}}
+
+    </section>
+
+</div>
+
+<script src="../assets/app.js"></script>
+
+</body>
+
+</html>

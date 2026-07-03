@@ -7,6 +7,7 @@ from reports.json_report import save_json
 
 from audit.engine import AuditEngine
 from audit.scoring import ScoreEngine
+from reports.html import HTMLReportBuilder
 
 
 def load_urls():
@@ -47,6 +48,8 @@ def main():
 
     score_engine = ScoreEngine()
 
+    html_builder = HTMLReportBuilder()
+
     for url in urls:
 
         console.print(f"\n[cyan]Opening {url}[/cyan]\n")
@@ -69,6 +72,13 @@ def main():
         report = engine.run(website)
 
         score = score_engine.calculate(report)
+
+
+        report_path = html_builder.build(
+            website,
+            report,
+            score,
+        )
 
         # -----------------------------
         # Website Health
@@ -161,6 +171,14 @@ def main():
             console.print(
                 f"{level.upper():<5}: {len(headings)}"
             )
+
+        console.print(
+            f"\n[bold green]HTML Report Generated[/bold green]"
+        )
+        
+        console.print(
+            f"[cyan]{report_path}[/cyan]\n"
+        )    
 
         console.print(
             "\n[bold cyan]Audit Results[/bold cyan]\n"
