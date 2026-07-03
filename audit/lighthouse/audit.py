@@ -4,6 +4,50 @@ from .runner import LighthouseRunner
 from .parser import parse_lighthouse
 
 
+def score_severity(score: float):
+
+    if score < 40:
+        return "Critical"
+
+    if score < 60:
+        return "High"
+
+    if score < 80:
+        return "Medium"
+
+    return "Low"
+
+
+def metric_severity(name, value):
+
+    limits = {
+
+        "FCP": (1800, 3000),
+
+        "LCP": (2500, 4000),
+
+        "INP": (200, 500),
+
+        "TBT": (200, 600),
+
+        "CLS": (0.1, 0.25),
+
+    }
+
+    if name not in limits:
+        return None
+
+    good, poor = limits[name]
+
+    if value <= good:
+        return None
+
+    if value >= poor:
+        return "High"
+
+    return "Medium"
+
+
 def run_lighthouse_audit(url: str):
 
     runner = LighthouseRunner()
@@ -14,84 +58,116 @@ def run_lighthouse_audit(url: str):
 
     issues = []
 
-    # ----------------------------------------
-    # Overall Scores
-    # ----------------------------------------
+    # =====================================================
+    # Lighthouse Scores
+    # =====================================================
 
     for category in report.categories:
 
         if category.score >= 90:
             continue
 
-        severity = "Low"
-
-        if category.score < 50:
-            severity = "High"
-        elif category.score < 75:
-            severity = "Medium"
-
         issues.append(
+
             Issue(
+
                 category="Lighthouse",
-                severity=severity,
+
+                severity=score_severity(category.score),
+
                 title=f"{category.title} Score",
+
                 description=f"{category.title} score is {category.score:.0f}/100.",
+
                 recommendation=f"Improve the {category.title.lower()} score.",
-                evidence=f"Score: {category.score:.0f}/100",
+
+                evidence=f"{category.score:.0f}/100",
+
             )
+
         )
 
-    # ----------------------------------------
+    # =====================================================
     # Core Web Vitals
-    # ----------------------------------------
-
-    thresholds = {
-        "FCP": 1800,
-        "LCP": 2500,
-        "INP": 200,
-        "TBT": 200,
-        "CLS": 0.1,
-    }
+    # =====================================================
 
     for metric in report.metrics:
 
-        if metric.name not in thresholds:
-            continue
-
         try:
             value = float(metric.value)
+
         except Exception:
             continue
 
-        if value <= thresholds[metric.name]:
+        severity = metric_severity(
+            metric.name,
+            value,
+        )
+
+        if severity is None:
             continue
 
         issues.append(
+
             Issue(
+
                 category="Performance",
-                severity="Medium",
-                title=f"High {metric.name}",
-                description=f"{metric.name} is {value}{metric.unit}.",
-                recommendation=f"Reduce {metric.name} to improve performance.",
-                evidence=f"{metric.name}: {value}{metric.unit}",
+
+                severity=severity,
+
+                title=f"{metric.name} Needs Improvement",
+
+                description=f"{metric.name} measured {value}{metric.unit}.",
+
+                recommendation=f"Improve {metric.name} according to Google's Core Web Vitals guidance.",
+
+                evidence=f"{value}{metric.unit}",
+
             )
+
         )
 
-    # ----------------------------------------
-    # Opportunities
-    # ----------------------------------------
+    # =====================================================
+    # Lighthouse Opportunities
+    # =====================================================
 
-    for opportunity in report.opportunities[:10]:
+    for opportunity in sorted(
+
+        report.opportunities,
+
+        key=lambda x: x["score"]
+
+    )[:10]:
+
+        score = opportunity["score"]
+
+        if score < 0.50:
+            severity = "High"
+
+        elif score < 0.75:
+            severity = "Medium"
+
+        else:
+            severity = "Low"
 
         issues.append(
+
             Issue(
+
                 category="Performance",
-                severity="Low",
+
+                severity=severity,
+
                 title=opportunity["title"],
+
                 description=opportunity["description"],
-                recommendation="Follow Lighthouse recommendation.",
+
+                recommendation="Apply Lighthouse recommendation.",
+
                 evidence=opportunity["display"],
+
             )
+
         )
 
     return issues

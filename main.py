@@ -26,7 +26,7 @@ def main():
     engine = AuditEngine()
     report = engine.run(
         website,
-        page,
+       
     )
 
     console.print("\n========== SUMMARY ==========\n")

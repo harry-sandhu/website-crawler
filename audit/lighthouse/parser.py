@@ -5,14 +5,66 @@ from .models import (
 )
 
 
+# ==========================================
+# Core Web Vitals
+# ==========================================
+
 METRICS = {
     "first-contentful-paint": ("FCP", "ms"),
     "largest-contentful-paint": ("LCP", "ms"),
-    "interactive": ("TTI", "ms"),
-    "speed-index": ("Speed Index", "ms"),
+    "interaction-to-next-paint": ("INP", "ms"),
     "total-blocking-time": ("TBT", "ms"),
     "cumulative-layout-shift": ("CLS", ""),
-    "interaction-to-next-paint": ("INP", "ms"),
+    "speed-index": ("Speed Index", "ms"),
+}
+
+
+# ==========================================
+# Only keep useful Lighthouse opportunities
+# ==========================================
+
+IMPORTANT_AUDITS = {
+
+    "render-blocking-resources",
+
+    "unused-css-rules",
+
+    "unused-javascript",
+
+    "uses-optimized-images",
+
+    "uses-responsive-images",
+
+    "offscreen-images",
+
+    "modern-image-formats",
+
+    "uses-text-compression",
+
+    "uses-long-cache-ttl",
+
+    "server-response-time",
+
+    "redirects",
+
+    "legacy-javascript",
+
+    "unminified-css",
+
+    "unminified-javascript",
+
+    "font-display",
+
+    "uses-rel-preconnect",
+
+    "uses-rel-preload",
+
+    "network-dependency-tree",
+
+    "dom-size",
+
+    "third-party-summary",
+
 }
 
 
@@ -20,27 +72,31 @@ def parse_lighthouse(data):
 
     report = LighthouseAudit()
 
-    # ----------------------------------
-    # Categories
-    # ----------------------------------
+    audits = data.get("audits", {})
+
+    # ==========================================
+    # Category Scores
+    # ==========================================
 
     for key, category in data.get("categories", {}).items():
 
         report.categories.append(
 
             LighthouseCategory(
+
                 id=key,
+
                 title=category.get("title", key),
-                score=(category.get("score") or 0) * 100,
+
+                score=round((category.get("score") or 0) * 100),
+
             )
 
         )
 
-    # ----------------------------------
-    # Core Web Vitals
-    # ----------------------------------
-
-    audits = data.get("audits", {})
+    # ==========================================
+    # Metrics
+    # ==========================================
 
     for audit_id, (name, unit) in METRICS.items():
 
@@ -52,20 +108,29 @@ def parse_lighthouse(data):
         report.metrics.append(
 
             LighthouseMetric(
+
                 name=name,
-                value=audit.get("numericValue", audit.get("displayValue", "")),
+
+                value=audit.get(
+                    "numericValue",
+                    audit.get("displayValue", ""),
+                ),
+
                 unit=unit,
+
             )
 
         )
 
-    # ----------------------------------
+    # ==========================================
     # Opportunities
-    # ----------------------------------
+    # ==========================================
 
-    for audit in audits.values():
+    for audit_id in IMPORTANT_AUDITS:
 
-        if audit.get("scoreDisplayMode") != "numeric":
+        audit = audits.get(audit_id)
+
+        if not audit:
             continue
 
         score = audit.get("score")
@@ -73,33 +138,36 @@ def parse_lighthouse(data):
         if score is None:
             continue
 
-        if score >= 0.9:
+        if score >= 0.90:
             continue
 
         report.opportunities.append({
 
-            "title": audit.get("title"),
+            "id": audit_id,
 
-            "description": audit.get("description"),
+            "title": audit.get("title", audit_id),
 
-            "score": score,
+            "description": audit.get("description", ""),
 
             "display": audit.get("displayValue", ""),
 
+            "score": score,
+
+            "details": audit.get("details"),
+
         })
 
-    # ----------------------------------
-    # Diagnostics
-    # ----------------------------------
+    # ==========================================
+    # Diagnostics (optional)
+    # ==========================================
 
-    diagnostics = [
+    for key in (
 
-        "network-requests",
         "diagnostics",
-        "resource-summary",
-    ]
 
-    for key in diagnostics:
+        "resource-summary",
+
+    ):
 
         audit = audits.get(key)
 
