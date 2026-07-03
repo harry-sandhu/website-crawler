@@ -1,3 +1,4 @@
+import webbrowser
 from pathlib import Path
 
 from browser.crawler import WebsiteCrawler
@@ -78,6 +79,10 @@ def main():
             website,
             report,
             score,
+        )
+
+        webbrowser.open(
+            Path(report_path).resolve().as_uri()
         )
 
         # -----------------------------

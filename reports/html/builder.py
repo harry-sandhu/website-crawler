@@ -79,73 +79,94 @@ class HTMLReportBuilder:
         return str(output)
 
     # ----------------------------------
-
+    
     def render(
         self,
         model,
     ):
-
+    
         html = self.template.read_text(
             encoding="utf-8"
         )
-
+    
         html = html.replace(
             "{{TITLE}}",
             model.title,
         )
-
+    
         html = html.replace(
             "{{URL}}",
             model.url,
         )
-
+    
         html = html.replace(
             "{{DATE}}",
             model.generated_at,
         )
-
+    
         html = html.replace(
             "{{OVERALL_SCORE}}",
             f"{model.overall_score:.1f}",
         )
-
+    
         html = html.replace(
             "{{CRITICAL}}",
             str(model.critical),
         )
-
+    
         html = html.replace(
             "{{HIGH}}",
             str(model.high),
         )
-
+    
         html = html.replace(
             "{{MEDIUM}}",
             str(model.medium),
         )
-
+    
         html = html.replace(
             "{{LOW}}",
             str(model.low),
         )
-
+    
         html = html.replace(
             "{{TOTAL}}",
             str(model.total_issues),
         )
-
+    
+        # ----------------------------------
+        # Screenshots
+        # ----------------------------------
+    
+        html = html.replace(
+            "{{DESKTOP}}",
+            model.screenshots["desktop"]["normal"],
+        )
+    
+        html = html.replace(
+            "{{MOBILE}}",
+            model.screenshots["iphone_15"]["normal"],
+        )
+    
+        # ----------------------------------
+        # Category Scores
+        # ----------------------------------
+    
         html = html.replace(
             "{{CATEGORY_SCORES}}",
             self.render_scores(model),
         )
-
+    
+        # ----------------------------------
+        # Audit Sections
+        # ----------------------------------
+    
         html = html.replace(
             "{{SECTIONS}}",
             self.render_sections(model),
         )
-
+    
         return html
-
     # ----------------------------------
 
     def render_scores(
