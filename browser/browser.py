@@ -18,30 +18,82 @@ class BrowserManager:
         self.responses = []
 
     def start(self):
-        self.playwright = sync_playwright().start()
 
-        self.browser = self.playwright.chromium.launch(
-            headless=self.headless
-        )
-
+        # ----------------------------------
+        # Start Playwright Once
+        # ----------------------------------
+    
+        if self.playwright is None:
+    
+            self.playwright = sync_playwright().start()
+    
+            self.browser = self.playwright.chromium.launch(
+                headless=self.headless
+            )
+    
+        # ----------------------------------
+        # Close Previous Context
+        # ----------------------------------
+    
+        if self.context:
+    
+            self.context.close()
+    
+        # ----------------------------------
+        # Reset Collected Data
+        # ----------------------------------
+    
+        self.console_messages.clear()
+        self.js_errors.clear()
+        self.network_requests.clear()
+        self.failed_requests.clear()
+        self.responses.clear()
+    
+        # ----------------------------------
+        # Fresh Context
+        # ----------------------------------
+    
         self.context = self.browser.new_context(
+    
             viewport={
                 "width": 1440,
-                "height": 900
+                "height": 900,
             }
+    
         )
-
+    
         self.page = self.context.new_page()
-
-        # Register event listeners
-        self.page.on("console", self._handle_console)
-        self.page.on("pageerror", self._handle_page_error)
-        self.page.on("request", self._handle_request)
-        self.page.on("requestfailed", self._handle_failed_request)
-        self.page.on("response", self._handle_response)
-
+    
+        # ----------------------------------
+        # Register Events
+        # ----------------------------------
+    
+        self.page.on(
+            "console",
+            self._handle_console,
+        )
+    
+        self.page.on(
+            "pageerror",
+            self._handle_page_error,
+        )
+    
+        self.page.on(
+            "request",
+            self._handle_request,
+        )
+    
+        self.page.on(
+            "requestfailed",
+            self._handle_failed_request,
+        )
+    
+        self.page.on(
+            "response",
+            self._handle_response,
+        )
+    
         return self.page
-
     def _handle_console(self, msg):
         self.console_messages.append(
             {
@@ -90,8 +142,21 @@ class BrowserManager:
         }
 
     def close(self):
-        if self.browser:
-            self.browser.close()
 
+        if self.context:
+    
+            self.context.close()
+    
+            self.context = None
+    
+        if self.browser:
+    
+            self.browser.close()
+    
+            self.browser = None
+    
         if self.playwright:
+    
             self.playwright.stop()
+    
+            self.playwright = None

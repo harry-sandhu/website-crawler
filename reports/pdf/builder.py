@@ -1,3 +1,5 @@
+from xml.sax.saxutils import escape
+
 from pathlib import Path
 from datetime import datetime
 from urllib.parse import urlparse
@@ -136,14 +138,14 @@ class PDFReportBuilder:
 
         story.append(
             Paragraph(
-                model.title,
+                escape(model.title),
                 HEADING,
             )
         )
 
         story.append(
             Paragraph(
-                model.url,
+                escape(model.url),
                 BODY,
             )
         )
@@ -249,7 +251,7 @@ class PDFReportBuilder:
 
                 Paragraph(
 
-                    section.title,
+                    escape(section.title),
 
                     HEADING,
 
@@ -263,7 +265,7 @@ class PDFReportBuilder:
 
                     Paragraph(
 
-                        f"<b>{issue.title}</b>",
+                        f"<b>{escape(issue.title)}</b>",
 
                         BODY,
 
@@ -275,7 +277,7 @@ class PDFReportBuilder:
 
                     Paragraph(
 
-                        issue.description,
+                       escape(issue.description),
 
                         BODY,
 
@@ -287,7 +289,7 @@ class PDFReportBuilder:
 
                     Paragraph(
 
-                        f"<b>Recommendation:</b> {issue.recommendation}",
+                        f"<b>Recommendation:</b> {escape(issue.recommendation)}",
 
                         BODY,
 
@@ -301,7 +303,7 @@ class PDFReportBuilder:
 
                         Paragraph(
 
-                            f"<b>Evidence:</b> {issue.evidence}",
+                             f"<b>Evidence:</b> {escape(issue.evidence)}",
 
                             SMALL,
 
