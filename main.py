@@ -9,6 +9,7 @@ from reports.json_report import save_json
 from audit.engine import AuditEngine
 from audit.scoring import ScoreEngine
 from reports.html import HTMLReportBuilder
+from reports.pdf import PDFReportBuilder
 
 
 def load_urls():
@@ -51,6 +52,8 @@ def main():
 
     html_builder = HTMLReportBuilder()
 
+    pdf_builder = PDFReportBuilder()
+
     for url in urls:
 
         console.print(f"\n[cyan]Opening {url}[/cyan]\n")
@@ -76,6 +79,13 @@ def main():
 
 
         report_path = html_builder.build(
+            website,
+            report,
+            score,
+        )
+
+
+        pdf_path = pdf_builder.build(
             website,
             report,
             score,
@@ -184,6 +194,14 @@ def main():
         console.print(
             f"[cyan]{report_path}[/cyan]\n"
         )    
+
+        console.print(
+            f"[bold green]PDF Report Generated[/bold green]"
+        )
+        
+        console.print(
+            f"[cyan]{pdf_path}[/cyan]\n"
+        )
 
         console.print(
             "\n[bold cyan]Audit Results[/bold cyan]\n"
