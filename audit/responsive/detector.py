@@ -1,49 +1,51 @@
 from .models import ResponsiveResult
+from .dom_inspector import inspect_dom
 
 
 def detect(page, device_name):
-    data = page.evaluate("""
-    () => {
 
-        const oversized = [];
-        const fixed = [];
+    page_data = page.evaluate("""
+    () => ({
 
-        document.querySelectorAll("*").forEach(el => {
+        width: window.innerWidth,
 
-            const rect = el.getBoundingClientRect();
+        height: window.innerHeight,
 
-            if(rect.width > window.innerWidth + 5){
-                oversized.push({
-                    tag: el.tagName,
-                    width: rect.width
-                });
-            }
+        scrollWidth: document.documentElement.scrollWidth,
 
-            const style = getComputedStyle(el);
+        clientWidth: document.documentElement.clientWidth
 
-            if(style.position === "fixed"){
-                fixed.push(el.tagName);
-            }
-
-        });
-
-        return {
-            width: window.innerWidth,
-            height: window.innerHeight,
-            scrollWidth: document.documentElement.scrollWidth,
-            clientWidth: document.documentElement.clientWidth,
-            oversized,
-            fixed
-        };
-    }
+    })
     """)
 
+    elements = inspect_dom(page)
+
+    oversized = [
+        e for e in elements
+        if e.width > page_data["width"] + 5
+    ]
+
+    fixed = [
+        e.tag
+        for e in elements
+        if e.fixed
+    ]
+
     return ResponsiveResult(
+
         device=device_name,
-        width=data["width"],
-        height=data["height"],
-        scroll_width=data["scrollWidth"],
-        client_width=data["clientWidth"],
-        oversized=data["oversized"],
-        fixed_elements=data["fixed"],
+
+        width=page_data["width"],
+
+        height=page_data["height"],
+
+        scroll_width=page_data["scrollWidth"],
+
+        client_width=page_data["clientWidth"],
+
+        oversized=oversized,
+
+        fixed_elements=fixed,
+
+        elements=elements,
     )

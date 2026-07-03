@@ -1,0 +1,29 @@
+{
+  "name": "website-auditor",
+  "version": "1.0.0",
+  "description": "Automated website auditing tool built with Python.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/harry-sandhu/website-crawler.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/harry-sandhu/website-crawler/issues"
+  },
+  "homepage": "https://github.com/harry-sandhu/website-crawler#readme",
+  "dependencies": {
+    "axe-core": "^4.12.1",
+    "lighthouse": "^13.4.0",
+    "playwright": "^1.61.1"
+  }
+}
