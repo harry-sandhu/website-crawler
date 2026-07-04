@@ -3,14 +3,31 @@ from pathlib import Path
 
 from browser.crawler import WebsiteCrawler
 
-from utils.logger import console
-from reports.json_report import save_json
-
 from audit.engine import AuditEngine
 from audit.scoring import ScoreEngine
+
+from reports.json_report import save_json
 from reports.html import HTMLReportBuilder
 from reports.pdf import PDFReportBuilder
 
+from utils.logger import (
+    console,
+    AUTO_OPEN_REPORT,
+)
+
+from utils.console_report import (
+    print_banner,
+    print_summary,
+)
+
+from utils.report_logger import (
+    save_issue_log,
+)
+
+
+# ----------------------------------
+# Load URLs
+# ----------------------------------
 
 def load_urls():
 
@@ -21,7 +38,7 @@ def load_urls():
         urls = []
 
         for line in url_file.read_text(
-            encoding="utf-8"
+            encoding="utf-8",
         ).splitlines():
 
             line = line.strip()
@@ -37,14 +54,22 @@ def load_urls():
         if urls:
             return urls
 
-    return [input("Website URL: ").strip()]
+    return [
+        input("Website URL: ").strip()
+    ]
 
+
+# ----------------------------------
+# Main
+# ----------------------------------
 
 def main():
 
     urls = load_urls()
 
-    crawler = WebsiteCrawler(headless=False)
+    crawler = WebsiteCrawler(
+        headless=False,
+    )
 
     engine = AuditEngine()
 
@@ -54,260 +79,139 @@ def main():
 
     pdf_builder = PDFReportBuilder()
 
-    for url in urls:
+    try:
 
-        try:
+        for index, url in enumerate(
+            urls,
+            start=1,
+        ):
 
-            console.print(
-                f"\n[cyan]Opening {url}[/cyan]\n"
-            )
+            try:
 
-            website = crawler.crawl(url)
+                # ----------------------------------
+                # Banner
+                # ----------------------------------
 
-            page_data = website.page
-            browser_data = website.browser
-
-            # -----------------------------
-            # Save Browser Data
-            # -----------------------------
-
-            save_json(browser_data)
-
-            # -----------------------------
-            # Run Audits
-            # -----------------------------
-
-            report = engine.run(website)
-
-            score = score_engine.calculate(report)
-
-            # -----------------------------
-            # Generate Reports
-            # -----------------------------
-
-            report_path = html_builder.build(
-                website,
-                report,
-                score,
-            )
-
-            pdf_path = pdf_builder.build(
-                website,
-                report,
-                score,
-            )
-
-            webbrowser.open(
-                Path(report_path).resolve().as_uri()
-            )
-
-            # -----------------------------
-            # Website Health
-            # -----------------------------
-
-            console.print(
-                "\n[bold green]========== WEBSITE HEALTH ==========[/bold green]\n"
-            )
-
-            console.print(
-                f"Overall Score    : {score.overall:.1f}/100"
-            )
-
-            console.print(
-                f"Critical Issues  : {score.critical}"
-            )
-
-            console.print(
-                f"High Issues      : {score.high}"
-            )
-
-            console.print(
-                f"Medium Issues    : {score.medium}"
-            )
-
-            console.print(
-                f"Low Issues       : {score.low}"
-            )
-
-            console.print(
-                f"Total Issues     : {score.total_issues}"
-            )
-
-            console.print()
-
-            console.print(
-                "[bold cyan]Category Scores[/bold cyan]\n"
-            )
-
-            for category in score.categories:
-
-                console.print(
-                    f"{category.name:<18} {category.score:>6.1f}/100"
+                print_banner(
+                    url,
+                    index,
+                    len(urls),
                 )
 
-            # -----------------------------
-            # Summary
-            # -----------------------------
+                # ----------------------------------
+                # Crawl Website
+                # ----------------------------------
 
-            console.print("\n========== SUMMARY ==========\n")
-
-            console.print(f"Title            : {website.title}")
-            console.print(f"Console Messages : {len(browser_data['console'])}")
-            console.print(f"JS Errors        : {len(browser_data['js_errors'])}")
-            console.print(f"Requests         : {len(browser_data['requests'])}")
-            console.print(f"Responses        : {len(browser_data['responses'])}")
-            console.print(f"Failed Requests  : {len(browser_data['failed_requests'])}")
-
-            console.print(f"Images           : {len(page_data['images'])}")
-            console.print(f"Links            : {len(page_data['links'])}")
-            console.print(f"Forms            : {len(page_data['forms'])}")
-            console.print(f"Buttons          : {len(page_data['buttons'])}")
-            console.print(f"Scripts          : {len(page_data['scripts'])}")
-            console.print(f"Stylesheets      : {len(page_data['stylesheets'])}")
-
-            console.print(f"Canonical        : {page_data['canonical']}")
-            console.print(f"Viewport         : {'Yes' if page_data['viewport'] else 'No'}")
-            console.print(f"Language         : {page_data['lang']}")
-            console.print(f"Favicon          : {'Yes' if page_data['favicon'] else 'No'}")
-            console.print(f"Emails           : {len(page_data['emails'])}")
-            console.print(f"Phones           : {len(page_data['phones'])}")
-            console.print(f"Schema           : {len(page_data['schema'])}")
-            console.print(f"Robots.txt       : {'Yes' if website.robots['exists'] else 'No'}")
-            console.print(f"Sitemap.xml      : {'Yes' if website.sitemap['exists'] else 'No'}")
-
-            console.print(
-                f"Desktop Shot     : {website.screenshots['desktop']['normal']}"
-            )
-
-            console.print(
-                f"Desktop Full     : {website.screenshots['desktop']['full']}"
-            )
-
-            console.print(
-                f"iPhone 15 Shot   : {website.screenshots['iphone_15']['normal']}"
-            )
-
-            console.print()
-
-            for level, headings in page_data["headings"].items():
-
-                console.print(
-                    f"{level.upper():<5}: {len(headings)}"
+                website = crawler.crawl(
+                    url,
                 )
 
-            console.print(
-                "\n[bold green]HTML Report Generated[/bold green]"
-            )
+                browser_data = website.browser
 
-            console.print(
-                f"[cyan]{report_path}[/cyan]\n"
-            )
+                # ----------------------------------
+                # Save Browser JSON
+                # ----------------------------------
 
-            console.print(
-                "[bold green]PDF Report Generated[/bold green]"
-            )
-
-            console.print(
-                f"[cyan]{pdf_path}[/cyan]\n"
-            )
-
-            console.print(
-                "\n[bold cyan]Audit Results[/bold cyan]\n"
-            )
-
-            if not report.issues:
-
-                console.print(
-                    "[green]✓ No issues found.[/green]"
+                save_json(
+                    browser_data,
                 )
 
-            else:
+                # ----------------------------------
+                # Run Audit
+                # ----------------------------------
 
-                severity_colors = {
+                report = engine.run(
+                    website,
+                )
 
-                    "Critical": "red",
+                score = score_engine.calculate(
+                    report,
+                )
 
-                    "High": "yellow",
+                # ----------------------------------
+                # Generate Reports
+                # ----------------------------------
 
-                    "Medium": "cyan",
+                html_path = html_builder.build(
+                    website,
+                    report,
+                    score,
+                )
 
-                    "Low": "green",
+                pdf_path = pdf_builder.build(
+                    website,
+                    report,
+                    score,
+                )
 
-                }
+                log_path = save_issue_log(
+                    website,
+                    report,
+                )
 
-                for issue in report.issues:
+                # ----------------------------------
+                # Open HTML Report
+                # ----------------------------------
 
-                    color = severity_colors.get(
-                        issue.severity,
-                        "white",
+                if AUTO_OPEN_REPORT:
+
+                    webbrowser.open(
+                        Path(
+                            html_path
+                        ).resolve().as_uri()
                     )
 
-                    console.print(
-                        f"[{color}]● {issue.severity:<8}[/{color}] {issue.title}"
-                    )
+                # ----------------------------------
+                # Console Summary
+                # ----------------------------------
 
-                    console.print(
-                        f"    Category      : {issue.category}"
-                    )
+                print_summary(
+                    website,
+                    browser_data,
+                    score,
+                )
 
-                    console.print(
-                        f"    Description   : {issue.description}"
-                    )
+                console.print(
+                    "[bold green]Reports Generated[/bold green]\n"
+                )
 
-                    console.print(
-                        f"    Recommendation: {issue.recommendation}"
-                    )
+                console.print(
+                    f"HTML Report : {html_path}"
+                )
 
-                    if issue.fix_time:
+                console.print(
+                    f"PDF Report  : {pdf_path}"
+                )
 
-                        console.print(
-                            f"    Estimated Fix : {issue.fix_time}"
-                        )
+                console.print(
+                    f"Audit Log   : {log_path}"
+                )
 
-                    if issue.page:
+                console.print()
 
-                        console.print(
-                            f"    Page          : {issue.page}"
-                        )
+            except Exception as e:
 
-                    if issue.selector:
+                console.print()
 
-                        console.print(
-                            f"    Selector      : {issue.selector}"
-                        )
+                console.print(
+                    f"[bold red]Failed to audit:[/bold red] {url}"
+                )
 
-                    if issue.screenshot:
+                console.print(
+                    f"[red]{type(e).__name__}: {e}[/red]"
+                )
 
-                        console.print(
-                            f"    Screenshot    : {issue.screenshot}"
-                        )
+                console.print()
 
-                    if issue.evidence:
+                continue
 
-                        console.print(
-                            f"    Evidence:\n{issue.evidence}"
-                        )
+    finally:
 
-                    console.print()
+        crawler.close()
 
-        except Exception as e:
 
-            console.print()
-
-            console.print(
-                f"[bold red]Failed to audit:[/bold red] {url}"
-            )
-
-            console.print(
-                f"[red]{type(e).__name__}: {e}[/red]"
-            )
-
-            console.print()
-
-            continue
-
-    crawler.close()
-
+# ----------------------------------
 
 if __name__ == "__main__":
+
     main()
