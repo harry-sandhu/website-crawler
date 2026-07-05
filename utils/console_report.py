@@ -57,7 +57,23 @@ def print_summary(
     )
 
     console.print(
-        f"Unique Findings: {score.total_issues}"
+        f"Verified      : {getattr(score, 'verified', 0)}"
+    )
+
+    console.print(
+        f"High Conf.    : {getattr(score, 'high_confidence', 0)}"
+    )
+
+    console.print(
+        f"Manual Review : {getattr(score, 'needs_manual_review', 0)}"
+    )
+
+    console.print(
+        f"Informational  : {getattr(score, 'informational', 0)}"
+    )
+
+    console.print(
+        f"Score Findings : {score.total_issues}"
     )
 
     confirmed = sum(

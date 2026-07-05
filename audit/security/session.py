@@ -1,6 +1,7 @@
 from .models import SecurityIssue
 from .shared import (
     is_framework_token_name,
+    looks_sensitive_token_name,
     looks_sensitive_token_value,
     parse_set_cookie_headers,
     text_snippet,
@@ -100,11 +101,12 @@ class SessionTester:
         description,
         recommendation,
         severity="Info",
-        confidence="High",
+        confidence="HIGH_CONFIDENCE",
         impact="",
         cwe="CWE-613",
         fix_time="5 minutes",
         notes="",
+        verification_method="Set-Cookie inspection",
     ):
 
         self._add_issue(
@@ -129,6 +131,7 @@ class SessionTester:
             fix_time=fix_time,
             notes=notes,
             response_code=request.response_status,
+            verification_method=verification_method,
         )
 
     def _browser_storage_text(
@@ -240,7 +243,7 @@ class SessionTester:
                         f"Session cookie '{name}' is missing the Secure attribute.",
                         "Mark session cookies as Secure so browsers only send them over HTTPS.",
                         severity="Medium",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Session cookies without Secure can be exposed on "
                             "cleartext connections."
@@ -259,7 +262,7 @@ class SessionTester:
                         f"Session cookie '{name}' is missing the HttpOnly attribute.",
                         "Mark session cookies as HttpOnly to reduce JavaScript access.",
                         severity="Medium",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "JavaScript running in the browser can access the "
                             "session cookie."
@@ -280,7 +283,7 @@ class SessionTester:
                         f"Session cookie '{name}' does not define SameSite.",
                         "Set SameSite to Lax or Strict unless cross-site sending is required.",
                         severity="Medium",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Session cookies without SameSite are easier to "
                             "include in cross-site requests."
@@ -299,7 +302,7 @@ class SessionTester:
                         f"Session cookie '{name}' uses a common framework default name.",
                         "Consider whether the default name reveals unnecessary stack details.",
                         severity="Low",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Default names can reveal the underlying framework "
                             "or platform."
@@ -324,7 +327,7 @@ class SessionTester:
                         f"Session cookie '{name}' uses a generic or sensitive-looking name.",
                         "Use explicit names that do not leak unnecessary semantics.",
                         severity="Info",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Generic names make it easier to spot session "
                             "material during reconnaissance."
@@ -349,7 +352,7 @@ class SessionTester:
                         f"Session cookie '{name}' appears to be a browser-session cookie.",
                         "Review whether the session should expire sooner or rotate more often.",
                         severity="Info",
-                        confidence="High",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Browser-session cookies persist until the browser "
                             "closes or the cookie is cleared."
@@ -378,7 +381,7 @@ class SessionTester:
                     f"Session cookie '{name}' changed value across observed responses.",
                     "Confirm that session rotation occurs at sensitive transitions such as login and privilege changes.",
                     severity="Info",
-                    confidence="Medium",
+                    confidence="HIGH_CONFIDENCE",
                     impact=(
                         "Observed rotation can indicate session renewal or "
                         "token refresh behavior."
@@ -404,7 +407,7 @@ class SessionTester:
                         f"Session cookie '{name}' has a long opaque value.",
                         "Keep session identifiers opaque and short enough to avoid unnecessary exposure in logs.",
                         severity="Info",
-                        confidence="Medium",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Long opaque values often indicate bearer-style "
                             "session material."
@@ -412,60 +415,84 @@ class SessionTester:
                         cwe="CWE-200",
                     )
 
-        html = self._html_text(
+        browser = getattr(
             website,
-        )
+            "browser",
+            {},
+        ) or {}
 
-        storage_text = self._browser_storage_text(
-            website,
-        )
+        storage_hits = []
 
-        if any(
-            token in html
-            for token in (
-                "localstorage",
-                "sessionstorage",
-                "document.cookie",
-                "window.name",
-            )
-        ) or any(
-            token in storage_text
-            for token in (
-                "session",
-                "auth",
-                "token",
-                "sid",
-            )
+        for storage_key in (
+            "local_storage",
+            "session_storage",
+            "storage",
+            "localStorage",
+            "sessionStorage",
         ):
+
+            storage = browser.get(
+                storage_key,
+            )
+
+            if isinstance(storage, dict):
+
+                items = storage.items()
+
+            elif isinstance(storage, list):
+
+                items = []
+
+                for item in storage:
+
+                    if isinstance(item, dict):
+                        items.extend(
+                            item.items()
+                        )
+
+            else:
+
+                items = []
+
+            for key, value in items:
+
+                if not (
+                    looks_sensitive_token_name(key)
+                    or looks_sensitive_token_value(value)
+                ):
+                    continue
+
+                storage_hits.append(
+                    f"{storage_key}:{key}={text_snippet(value, 120)}"
+                )
+
+        if storage_hits:
 
             self._add_issue(
                 report,
-                severity="Low",
-                title="Client-Side Session Identifier Observed",
+                severity="High",
+                title="Sensitive Session Material Exposed in Browser Storage",
                 category="Session",
                 description=(
-                    "The page or browser storage appears to reference "
-                    "client-side session material."
+                    "Readably accessible browser storage contains session or "
+                    "token-like material."
                 ),
                 recommendation=(
-                    "Prefer server-side session management and avoid storing "
-                    "bearer-style identifiers in readable browser storage."
+                    "Avoid storing bearer-style session identifiers in "
+                    "localStorage, sessionStorage, or other readable storage."
                 ),
                 endpoint=website.url,
                 page=website.url,
-                evidence=(
-                    text_snippet(
-                        html,
-                        180,
-                    )
-                    or text_snippet(storage_text, 180)
+                evidence="\n".join(
+                    storage_hits[:8]
                 ),
-                confidence="Medium",
+                confidence="HIGH_CONFIDENCE",
                 impact=(
-                    "Client-side identifiers are easier to expose through "
-                    "JavaScript and browser tooling."
+                    "JavaScript-accessible storage can leak session material "
+                    "to injected scripts or browser tooling."
                 ),
                 cwe="CWE-922",
                 owasp="A05:2021 - Security Misconfiguration",
                 fix_time="10 minutes",
+                verification_method="Browser storage inspection",
             )

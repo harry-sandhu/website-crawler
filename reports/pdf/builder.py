@@ -317,6 +317,15 @@ class PDFReportBuilder:
                         )
                     )
 
+                if getattr(issue, "verification_method", ""):
+
+                    story.append(
+                        Paragraph(
+                            f"<b>Verification Method:</b> {escape(issue.verification_method)}",
+                            SMALL,
+                        )
+                    )
+
                 if getattr(issue, "occurrences", 0):
 
                     story.append(

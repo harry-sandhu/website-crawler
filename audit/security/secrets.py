@@ -1,7 +1,11 @@
 import re
 
 from .models import SecurityIssue
-from .shared import text_snippet
+from .shared import (
+    looks_like_public_oauth_endpoint,
+    shannon_entropy,
+    text_snippet,
+)
 
 
 class SecretsTester:
@@ -93,23 +97,13 @@ class SecretsTester:
         ),
         (
             "Private Key Block Exposed",
-            "Critical",
+            "High",
             re.compile(
                 r"-----BEGIN [A-Z0-9 ]+ PRIVATE KEY-----"
             ),
             "A private key block was observed in content.",
             "Remove the private key from the application and rotate it.",
             "CWE-321",
-        ),
-        (
-            "JWT-Like Token Exposed",
-            "Low",
-            re.compile(
-                r"\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"
-            ),
-            "A JWT-like token was observed in content.",
-            "Review whether the token should be exposed to the browser.",
-            "CWE-200",
         ),
     ]
 
@@ -179,6 +173,22 @@ class SecretsTester:
             {},
         ) or {}
 
+        browser_responses = browser.get(
+            "responses",
+            [],
+        )
+
+        for response in browser_responses:
+
+            if isinstance(response, dict):
+
+                sources.extend(
+                    [
+                        response.get("url", ""),
+                        response.get("body", ""),
+                    ]
+                )
+
         for key in (
             "cookies",
             "local_storage",
@@ -215,6 +225,32 @@ class SecretsTester:
 
         return sources
 
+    def _is_public_oauth_context(self, source):
+
+        return looks_like_public_oauth_endpoint(
+            source
+        )
+
+    def _is_high_entropy_bearer(
+        self,
+        value,
+    ):
+
+        token = re.sub(
+            r"^Bearer\s+",
+            "",
+            str(value or ""),
+            flags=re.IGNORECASE,
+        )
+
+        compact = re.sub(
+            r"[^A-Za-z0-9+/=_-]",
+            "",
+            token,
+        )
+
+        return len(compact) >= 24 and shannon_entropy(compact) >= 3.4
+
     def _report_match(
         self,
         report,
@@ -225,7 +261,20 @@ class SecretsTester:
         description,
         recommendation,
         cwe,
+        verification_method,
     ):
+
+        confidence = "HIGH_CONFIDENCE"
+
+        if title in {
+            "Stripe Publishable Key Exposed",
+            "Webhook URL Exposed",
+            "Firebase Configuration Exposed",
+        }:
+            confidence = "INFORMATIONAL"
+
+        elif title == "Private Key Block Exposed":
+            confidence = "VERIFIED"
 
         primary_request = report.requests[0] if report.requests else None
 
@@ -247,7 +296,7 @@ class SecretsTester:
                 evidence,
                 220,
             ),
-            confidence="High",
+            confidence=confidence,
             impact=(
                 "Secret material in client-visible content can be copied, "
                 "reused, or abused."
@@ -255,6 +304,7 @@ class SecretsTester:
             cwe=cwe,
             owasp="A05:2021 - Security Misconfiguration",
             fix_time="5 minutes",
+            verification_method=verification_method,
         )
 
     def _firebase_hint(
@@ -298,6 +348,12 @@ class SecretsTester:
             if not source:
                 continue
 
+            if self._is_public_oauth_context(
+                source
+            ):
+
+                continue
+
             if self._firebase_hint(
                 source
             ):
@@ -319,6 +375,7 @@ class SecretsTester:
                         "Firebase configuration details appear to be present in client-visible content.",
                         "Move Firebase configuration management behind build-time controls and keep secrets out of public code.",
                         "CWE-200",
+                        verification_method="Static configuration review",
                     )
 
             for title, severity, pattern, description, recommendation, cwe in self.PATTERNS:
@@ -330,6 +387,11 @@ class SecretsTester:
                     evidence = match.group(
                         0
                     )
+
+                    if title == "Bearer Token Exposed" and not self._is_high_entropy_bearer(
+                        evidence
+                    ):
+                        continue
 
                     key = (
                         title,
@@ -352,5 +414,9 @@ class SecretsTester:
                         description,
                         recommendation,
                         cwe,
+                        verification_method=(
+                            "Content pattern and entropy validation"
+                            if title == "Bearer Token Exposed"
+                            else "Known credential format validation"
+                        ),
                     )
-

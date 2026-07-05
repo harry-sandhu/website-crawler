@@ -1,6 +1,10 @@
 import unittest
 from unittest.mock import patch
 
+from audit.models import Issue
+from audit.normalization import normalize_issues
+from audit.report import AuditReport
+from audit.scoring.engine import ScoreEngine
 from audit.security.api import APITester
 from audit.security.business_logic import BusinessLogicTester
 from audit.security.models import RequestData, SecurityReport
@@ -22,6 +26,48 @@ class WebsiteStub:
 
 
 class SecurityDetectionTests(unittest.TestCase):
+
+    def test_only_high_confidence_security_findings_count_toward_score(self):
+
+        report = AuditReport(
+            issues=[
+                Issue(
+                    category="Authentication",
+                    severity="Info",
+                    title="Login Form Detected",
+                    description="A login form was observed.",
+                    recommendation="Inventory the flow.",
+                    evidence="form/login",
+                    confidence="HIGH_CONFIDENCE",
+                ),
+                Issue(
+                    category="Security",
+                    severity="High",
+                    title="Sensitive API Credentials Exposed",
+                    description="A real secret was observed.",
+                    recommendation="Rotate it.",
+                    evidence="api_key=abcdef",
+                    confidence="HIGH_CONFIDENCE",
+                ),
+            ]
+        )
+
+        report.issues = normalize_issues(
+            report.issues
+        )
+
+        score = ScoreEngine().calculate(
+            report
+        )
+
+        self.assertEqual(
+            score.total_issues,
+            1,
+        )
+        self.assertEqual(
+            score.high_confidence,
+            1,
+        )
 
     def test_api_tester_flags_sensitive_json_response_fields(self):
 

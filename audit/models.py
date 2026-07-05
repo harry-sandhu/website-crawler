@@ -16,6 +16,7 @@ class Issue:
     affected_items: list[str] = field(default_factory=list)
     occurrences: int = 1
     verification: str = "Potential"
+    verification_method: str = ""
 
     # Optional
     endpoint: str = ""

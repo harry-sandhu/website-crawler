@@ -1,4 +1,5 @@
 from http.cookies import SimpleCookie
+import math
 import re
 
 
@@ -62,6 +63,13 @@ SENSITIVE_VALUE_PATTERNS = [
         r"\b[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b"
     ),
 ]
+
+CONFIDENCE_LEVELS = {
+    "VERIFIED",
+    "HIGH_CONFIDENCE",
+    "NEEDS_MANUAL_REVIEW",
+    "INFORMATIONAL",
+}
 
 
 def normalize_headers(headers):
@@ -307,3 +315,222 @@ def first_nonempty(*values):
             return value
 
     return ""
+
+
+def normalize_confidence(
+    value,
+    verification="",
+    title="",
+    category="",
+):
+
+    if str(verification or "").strip().lower() in (
+        "confirmed",
+        "verified",
+    ):
+        return "VERIFIED"
+
+    lowered_title = str(title or "").lower()
+    lowered_category = str(category or "").lower()
+
+    informational_tokens = (
+        "login form detected",
+        "registration form detected",
+        "password recovery flow detected",
+        "multi-factor authentication",
+        "oauth or sso integration detected",
+        "api endpoint found",
+        "api reference found",
+        "common api endpoint candidate",
+        "password managers may be disabled",
+        "password manager support disabled",
+        "password field autocomplete disabled",
+        "client-side password validation not observed",
+        "client-side session identifier observed",
+        "default session cookie name detected",
+        "weak session cookie name detected",
+        "session cookie has no explicit expiration",
+        "session cookie rotation observed",
+        "long session identifier observed",
+        "http to https redirect observed",
+        "password autocomplete",
+        "security.txt",
+        "jquery detected",
+        "react detected",
+        "vue detected",
+        "angular detected",
+        "next.js detected",
+        "nuxt detected",
+        "wordpress detected",
+        "drupal detected",
+        "bootstrap detected",
+        "tailwind detected",
+        "console warnings",
+    )
+
+    review_tokens = (
+        "potential missing csrf protection",
+        "potential sql injection entry point",
+        "database input missing client validation",
+        "potential idor parameter",
+        "potential idor url parameter",
+        "hidden business logic field detected",
+        "missing h1 heading",
+        "weak password policy",
+        "missing autocomplete",
+        "missing pattern",
+        "missing maxlength",
+        "missing minlength",
+        "optional input field",
+        "readonly",
+        "disabled",
+    )
+
+    high_tokens = (
+        "mixed content",
+        "sensitive hidden field detected",
+        "sensitive session material exposed in browser storage",
+        "jwt token verified",
+        "confirmed reflected xss",
+        "confirmed price or fee manipulation",
+        "sensitive api credentials exposed",
+        "sensitive personal data exposed",
+        "api response exposes user identifiers",
+        "missing hsts",
+        "weak hsts",
+        "missing csp",
+        "weak csp",
+        "weak tls version observed",
+        "weak tls cipher observed",
+        "tls certificate expires soon",
+        "vulnerable jquery version detected",
+        "site does not use https",
+        "https site missing hsts",
+        "session cookie missing secure attribute",
+        "session cookie missing httponly attribute",
+        "session cookie missing samesite attribute",
+        "cookie missing secure attribute",
+        "cookie missing httponly attribute",
+        "cookie missing samesite attribute",
+        "aws access key id exposed",
+        "google api key exposed",
+        "stripe secret key exposed",
+        "github token exposed",
+        "github fine-grained token exposed",
+        "private key block exposed",
+        "bearer token exposed",
+    )
+
+    if any(token in lowered_title for token in informational_tokens):
+        return "INFORMATIONAL"
+
+    if any(token in lowered_title for token in review_tokens):
+        return "NEEDS_MANUAL_REVIEW"
+
+    if any(token in lowered_title for token in high_tokens):
+        return "HIGH_CONFIDENCE"
+
+    if lowered_category in {
+        "seo",
+        "performance",
+        "accessibility",
+        "responsive",
+        "lighthouse",
+        "network",
+        "html/ux",
+        "html best practices",
+        "detected technologies",
+        "security best practices",
+        "networking",
+        "console",
+        "performance",
+        "usability",
+    }:
+        return "INFORMATIONAL"
+
+    normalized = str(value or "").strip().upper().replace("-", "_")
+
+    mapping = {
+        "HIGH": "HIGH_CONFIDENCE",
+        "HIGH_CONFIDENCE": "HIGH_CONFIDENCE",
+        "MEDIUM": "NEEDS_MANUAL_REVIEW",
+        "LOW": "NEEDS_MANUAL_REVIEW",
+        "NEEDS_MANUAL_REVIEW": "NEEDS_MANUAL_REVIEW",
+        "INFO": "INFORMATIONAL",
+        "INFORMATIONAL": "INFORMATIONAL",
+        "POTENTIAL": "NEEDS_MANUAL_REVIEW",
+        "LIKELY": "HIGH_CONFIDENCE",
+        "CONFIRMED": "VERIFIED",
+        "VERIFIED": "VERIFIED",
+    }
+
+    return mapping.get(
+        normalized,
+        "NEEDS_MANUAL_REVIEW",
+    )
+
+
+def confidence_is_scoreworthy(
+    value,
+    verification="",
+    title="",
+    category="",
+):
+
+    return normalize_confidence(
+        value,
+        verification,
+        title,
+        category,
+    ) in {
+        "VERIFIED",
+        "HIGH_CONFIDENCE",
+    }
+
+
+def shannon_entropy(text):
+
+    text = str(text or "")
+
+    if not text:
+        return 0.0
+
+    counts = {}
+
+    for char in text:
+        counts[char] = counts.get(char, 0) + 1
+
+    length = len(text)
+
+    entropy = 0.0
+
+    for count in counts.values():
+
+        probability = count / length
+
+        entropy -= probability * math.log2(probability)
+
+    return entropy
+
+
+def looks_like_public_oauth_endpoint(url):
+
+    text = str(url or "").lower()
+
+    if not text:
+        return False
+
+    allowed = (
+        "/.well-known/",
+        "openid-configuration",
+        "fedcm",
+        "accounts.google.com",
+        "oauth-authorization-server",
+        "authorization-server",
+        "jwks",
+    )
+
+    if any(token in text for token in allowed):
+        return True
+
+    return False

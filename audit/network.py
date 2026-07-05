@@ -82,8 +82,16 @@ def run_network_audit(browser_data):
 
     mixed = []
 
-    for response in responses:
-        if response["url"].startswith("http://"):
+    if not website.url.lower().startswith("https://"):
+        mixed = []
+    else:
+
+        for response in responses:
+            parsed = urlparse(response["url"])
+
+            if parsed.scheme != "http" or not parsed.netloc:
+                continue
+
             mixed.append(response["url"])
 
     if mixed:
@@ -95,6 +103,8 @@ def run_network_audit(browser_data):
                 description="HTTP resources were loaded on an HTTPS page.",
                 recommendation="Serve all assets over HTTPS.",
                 evidence="\n".join(mixed),
+                confidence="HIGH_CONFIDENCE",
+                verification_method="Browser resource inspection",
             )
         )
 

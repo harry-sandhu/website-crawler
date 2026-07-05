@@ -164,13 +164,15 @@ class XSSTester:
                                 "JavaScript in another user's browser."
                             ),
 
-                            confidence="Medium",
+                            confidence="VERIFIED",
 
                             cwe="CWE-79",
 
                             owasp="A03:2021 - Injection",
 
                             fix_time="2-6 hours",
+
+                            verification_method="HTTP response reflection check",
 
                         )
                     )

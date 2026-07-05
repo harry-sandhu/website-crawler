@@ -241,6 +241,7 @@ class InputValidator:
         affected_item="",
         selector="",
         page="",
+        verification_method="",
         occurrences=1,
     ):
 
@@ -302,6 +303,7 @@ class InputValidator:
                 1,
                 int(occurrences or 1),
             ),
+            verification_method=verification_method or "Form field inspection",
         )
 
         for existing in report.issues:
@@ -334,56 +336,100 @@ class InputValidator:
         name = (field.name or "").lower()
         value = field.value or ""
 
+        framework_hidden_names = {
+            "action",
+            "csrf",
+            "csrf_token",
+            "module",
+            "token",
+            "fc",
+            "form_token",
+            "_token",
+        }
+
+        if name in framework_hidden_names or is_framework_token_name(name):
+            return
+
+        business_logic_hints = (
+            "price",
+            "fee",
+            "amount",
+            "total",
+            "subtotal",
+            "discount",
+            "tax",
+            "shipping",
+            "quantity",
+            "qty",
+            "role",
+            "permission",
+            "account",
+            "user",
+            "order",
+            "id",
+        )
+
         if looks_sensitive_token_name(name) or looks_sensitive_token_value(value):
 
             self.report_issue(
                 report,
-                "Medium",
+                "High",
                 "Sensitive Hidden Field Detected",
                 (
-                    f"Hidden field '{field.name}' may contain sensitive data."
+                    f"Hidden field '{field.name}' appears to hold sensitive "
+                    "material."
                 ),
                 (
                     "Do not trust hidden form fields for security decisions. "
-                    "Validate all values on the server."
+                    "Validate and recalculate sensitive values on the server."
                 ),
                 form,
                 field,
                 evidence=(
-                    "Sensitive token-like name or value detected."
+                    "Sensitive token-like name or value detected in a hidden field."
                 ),
-                confidence="Medium",
+                confidence="HIGH_CONFIDENCE",
                 impact=(
-                    "Client-side hidden values can be modified before "
-                    "submission."
+                    "Client-side hidden values can be modified before submission."
                 ),
                 cwe="CWE-602",
                 owasp="A01:2021 - Broken Access Control",
                 fix_time="30-60 minutes",
                 category="Security",
+                verification_method="Hidden field inspection",
             )
 
-        if field.value:
+            return
+
+        if any(
+            hint in name
+            for hint in business_logic_hints
+        ):
 
             self.report_issue(
                 report,
-                "Info",
-                "Hidden Field Contains Default Value",
+                "Medium",
+                "Hidden Business Logic Field Detected",
                 (
-                    f"Hidden field '{field.name}' contains a preset value."
+                    f"Hidden field '{field.name}' appears to influence business "
+                    "logic or pricing."
                 ),
                 (
-                    "Ensure preset values are validated on the server and "
-                    "cannot be trusted solely because they originate from the client."
+                    "Recalculate business logic on the server and do not trust "
+                    "hidden fields for pricing, roles, or identifiers."
                 ),
                 form,
                 field,
-                evidence=f"Default value: {field.value}",
-                confidence="Low",
+                evidence=f"Hidden field name: {field.name}; value: {field.value}",
+                confidence="NEEDS_MANUAL_REVIEW",
+                impact=(
+                    "Hidden business logic fields can be tampered with in the browser."
+                ),
                 cwe="CWE-602",
-                owasp="A01:2021 - Broken Access Control",
-                fix_time="10 minutes",
-                category="HTML Best Practices",
+                owasp="A04:2021 - Insecure Design",
+                fix_time="30-60 minutes",
+                category="Business Logic",
+                verification_method="Hidden field inspection",
             )
 
     def check_number(

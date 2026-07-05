@@ -58,7 +58,7 @@ class SQLInjectionTester:
                     continue
 
                 severity = "Low"
-                confidence = "Low"
+                confidence = "NEEDS_MANUAL_REVIEW"
 
                 if (
                     field.name
@@ -66,7 +66,7 @@ class SQLInjectionTester:
                 ):
 
                     severity = "Medium"
-                    confidence = "Medium"
+                    confidence = "NEEDS_MANUAL_REVIEW"
 
                 report.issues.append(
 
@@ -112,6 +112,8 @@ class SQLInjectionTester:
 
                         fix_time="2-8 hours",
 
+                        verification_method="Form field inspection",
+
                     )
 
                 )
@@ -151,13 +153,15 @@ class SQLInjectionTester:
                                 "invalid input reaching the server."
                             ),
 
-                            confidence="Low",
+                            confidence="INFORMATIONAL",
 
                             cwe="CWE-20",
 
                             owasp="A03:2021 - Injection",
 
                             fix_time="30-60 minutes",
+
+                            verification_method="Form field inspection",
 
                         )
 

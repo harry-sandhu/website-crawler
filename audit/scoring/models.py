@@ -21,10 +21,14 @@ class AuditScore:
     critical: int = 0
 
     high: int = 0
+    verified: int = 0
+    high_confidence: int = 0
 
     medium: int = 0
+    needs_manual_review: int = 0
 
     low: int = 0
+    informational: int = 0
 
     info: int = 0
 

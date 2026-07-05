@@ -78,17 +78,19 @@ class CSRFTester:
                         evidence="No CSRF token field detected.",
 
                         impact=(
-                            "Attackers may be able to force authenticated "
-                            "users to submit unwanted requests."
+                            "This is a heuristic indicator and should be "
+                            "verified against real request handling."
                         ),
 
-                        confidence="Medium",
+                        confidence="NEEDS_MANUAL_REVIEW",
 
                         cwe="CWE-352",
 
                         owasp="A01 Broken Access Control",
 
                         fix_time="2-4 hours",
+
+                        verification_method="Form token inspection",
 
                     )
 

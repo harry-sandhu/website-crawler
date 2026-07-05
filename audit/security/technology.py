@@ -1,5 +1,10 @@
 from .models import SecurityIssue
-from .shared import header_value, normalize_headers, parse_set_cookie_headers, text_snippet
+from .shared import (
+    header_value,
+    normalize_headers,
+    parse_set_cookie_headers,
+    text_snippet,
+)
 
 
 class TechnologyTester:
@@ -33,8 +38,9 @@ class TechnologyTester:
         seen,
         title,
         evidence,
-        confidence="High",
+        confidence="INFORMATIONAL",
         severity="Info",
+        category="Detected Technologies",
     ):
 
         if title in seen:
@@ -48,7 +54,7 @@ class TechnologyTester:
             report,
             severity=severity,
             title=title,
-            category="Technology",
+            category=category,
             description=(
                 "A passive fingerprinting signal suggests this technology "
                 "is in use."
@@ -382,10 +388,73 @@ class TechnologyTester:
 
         if "jquery" in scripts or "jquery" in lower_html:
 
-            self._detect(
-                report,
-                website,
-                seen,
-                "jQuery Detected",
-                "jQuery assets or markers were observed.",
+            import re
+
+            version = ""
+
+            version_patterns = (
+                r"jquery[^\d]{0,10}(\d+\.\d+\.\d+)",
+                r"jquery[-_.](\d+\.\d+\.\d+)",
+                r"[?&]ver=(\d+\.\d+\.\d+)",
             )
+
+            for source in (scripts, lower_html):
+
+                for pattern in version_patterns:
+
+                    match = re.search(
+                        pattern,
+                        source,
+                    )
+
+                    if match:
+                        version = match.group(1)
+                        break
+
+                if version:
+                    break
+
+            if version:
+
+                try:
+                    version_tuple = tuple(
+                        int(part)
+                        for part in version.split(".")[:3]
+                    )
+                except Exception:
+                    version_tuple = ()
+
+                if version_tuple and version_tuple < (3, 5, 0):
+
+                    self._detect(
+                        report,
+                        website,
+                        seen,
+                        "Vulnerable jQuery Version Detected",
+                        f"jQuery version {version} was observed.",
+                        confidence="HIGH_CONFIDENCE",
+                        severity="Medium",
+                        category="Security",
+                    )
+
+                else:
+
+                    self._detect(
+                        report,
+                        website,
+                        seen,
+                        "jQuery Detected",
+                        f"jQuery version {version} was observed.",
+                        confidence="INFORMATIONAL",
+                    )
+
+            else:
+
+                self._detect(
+                    report,
+                    website,
+                    seen,
+                    "jQuery Detected",
+                    "jQuery assets or markers were observed.",
+                    confidence="INFORMATIONAL",
+                )

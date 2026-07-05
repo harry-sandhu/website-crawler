@@ -10,6 +10,8 @@ from .weights import (
     CATEGORY_MULTIPLIERS,
 )
 
+from audit.security.shared import confidence_is_scoreworthy, normalize_confidence
+
 
 class ScoreEngine:
 
@@ -30,6 +32,46 @@ class ScoreEngine:
         categories = {}
 
         for issue in report.issues:
+
+            confidence = normalize_confidence(
+                getattr(
+                    issue,
+                    "confidence",
+                    "",
+                ),
+                getattr(
+                    issue,
+                    "verification",
+                    "",
+                ),
+                getattr(
+                    issue,
+                    "title",
+                    "",
+                ),
+                getattr(
+                    issue,
+                    "category",
+                    "",
+                ),
+            )
+
+            if confidence == "VERIFIED":
+                score.verified += 1
+            elif confidence == "HIGH_CONFIDENCE":
+                score.high_confidence += 1
+            elif confidence == "NEEDS_MANUAL_REVIEW":
+                score.needs_manual_review += 1
+            else:
+                score.informational += 1
+
+            if not confidence_is_scoreworthy(
+                getattr(issue, "confidence", ""),
+                getattr(issue, "verification", ""),
+                getattr(issue, "title", ""),
+                getattr(issue, "category", ""),
+            ):
+                continue
 
             score.total_issues += 1
 

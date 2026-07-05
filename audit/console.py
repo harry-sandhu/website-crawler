@@ -1,6 +1,41 @@
 from audit.models import Issue
 
 
+THIRD_PARTY_CONSOLE_HINTS = (
+    "google",
+    "googleapis",
+    "gstatic",
+    "recaptcha",
+    "facebook",
+    "fbcdn",
+    "paypal",
+    "analytics",
+    "googletagmanager",
+    "gtm",
+    "doubleclick",
+    "hotjar",
+    "segment",
+    "mixpanel",
+    "amplitude",
+    "sentry",
+    "datadog",
+    "newrelic",
+    "cloudflare",
+    "browser extension",
+    "extension",
+)
+
+
+def _is_third_party_console_text(text):
+
+    lower = str(text or "").lower()
+
+    return any(
+        hint in lower
+        for hint in THIRD_PARTY_CONSOLE_HINTS
+    )
+
+
 def run_console_audit(browser_data):
     issues = []
 
@@ -11,15 +46,21 @@ def run_console_audit(browser_data):
     # JavaScript Exceptions
     # ----------------------------
 
-    if js_errors:
+    app_errors = [
+        error
+        for error in js_errors
+        if not _is_third_party_console_text(error)
+    ]
+
+    if app_errors:
         issues.append(
             Issue(
                 category="Console",
                 severity="High",
                 title="JavaScript Exceptions",
-                description=f"{len(js_errors)} JavaScript exceptions occurred.",
+                description=f"{len(app_errors)} JavaScript exceptions occurred.",
                 recommendation="Investigate the stack traces and fix runtime errors.",
-                evidence="\n".join(js_errors[:10]),
+                evidence="\n".join(app_errors[:10]),
             )
         )
 
@@ -31,7 +72,10 @@ def run_console_audit(browser_data):
 
     for message in console_messages:
 
-        if message["type"] == "error":
+        if (
+            message["type"] == "error"
+            and not _is_third_party_console_text(message["text"])
+        ):
             errors.append(message["text"])
 
     if errors:
@@ -54,7 +98,10 @@ def run_console_audit(browser_data):
 
     for message in console_messages:
 
-        if message["type"] == "warning":
+        if (
+            message["type"] == "warning"
+            and not _is_third_party_console_text(message["text"])
+        ):
             warnings.append(message["text"])
 
     if warnings:

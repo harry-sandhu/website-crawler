@@ -10,7 +10,7 @@ from .shared import parse_set_cookie_headers, text_snippet
 class JWTTester:
 
     TOKEN_PATTERN = re.compile(
-        r"\b([A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})\b"
+        r"(?<![A-Za-z0-9_-])([A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])"
     )
 
     def _add_issue(
@@ -30,11 +30,20 @@ class JWTTester:
         segment,
     ):
 
+        if not re.fullmatch(
+            r"[A-Za-z0-9_-]+",
+            segment or "",
+        ):
+            return None
+
         padding = "=" * (-len(segment) % 4)
 
-        return base64.urlsafe_b64decode(
-            (segment + padding).encode("ascii")
-        )
+        try:
+            return base64.urlsafe_b64decode(
+                (segment + padding).encode("ascii")
+            )
+        except Exception:
+            return None
 
     def _decode_jwt(
         self,
@@ -46,17 +55,31 @@ class JWTTester:
         if len(parts) != 3:
             return None
 
+        header_bytes = self._decode_segment(
+            parts[0]
+        )
+        payload_bytes = self._decode_segment(
+            parts[1]
+        )
+
+        if not header_bytes or not payload_bytes:
+            return None
+
         try:
 
             header = json.loads(
-                self._decode_segment(parts[0]).decode("utf-8")
+                header_bytes.decode("utf-8")
             )
 
             payload = json.loads(
-                self._decode_segment(parts[1]).decode("utf-8")
+                payload_bytes.decode("utf-8")
             )
 
         except Exception:
+
+            return None
+
+        if not isinstance(header, dict) or "alg" not in header:
 
             return None
 
@@ -276,11 +299,11 @@ class JWTTester:
                 self._add_issue(
                     report,
                     severity="Info",
-                    title="JWT Observed",
+                    title="JWT Token Verified",
                     category="JWT",
                     description=(
-                        "A JWT-like token was discovered and decoded without "
-                        "signature verification."
+                        "A valid JWT structure was discovered and decoded from "
+                        "an observed application source."
                     ),
                     recommendation=(
                         "Review token lifetime, issuer, audience, and "
@@ -291,7 +314,7 @@ class JWTTester:
                     evidence=(
                         f"{text_snippet(token, 120)} | {claims}"
                     ),
-                    confidence="High",
+                    confidence="HIGH_CONFIDENCE",
                     impact=(
                         "JWTs often carry authentication or authorization "
                         "state and should have tightly controlled claims."
@@ -299,6 +322,7 @@ class JWTTester:
                     cwe="CWE-522",
                     owasp="A07:2021 - Identification and Authentication Failures",
                     fix_time="5 minutes",
+                    verification_method="Base64URL decode and JSON header validation",
                 )
 
                 alg = self._claim_value(
@@ -463,4 +487,3 @@ class JWTTester:
                         owasp="A07:2021 - Identification and Authentication Failures",
                         fix_time="5 minutes",
                     )
-

@@ -66,11 +66,9 @@ class APITester:
             "firstname",
             "lastname",
             "full_name",
-            "name",
         }
 
         self.identifier_keys = {
-            "id",
             "user_id",
             "userid",
             "account_id",
@@ -83,15 +81,6 @@ class APITester:
             "profileid",
             "member_id",
             "memberid",
-            "role",
-            "roles",
-            "permission",
-            "permissions",
-            "scope",
-            "scopes",
-            "group",
-            "groups",
-            "tenant",
             "tenant_id",
         }
 
@@ -341,24 +330,6 @@ class APITester:
                         }
                     )
 
-        if body:
-
-            for pattern in (
-                self.email_pattern,
-                self.phone_pattern,
-                self.ssn_pattern,
-            ):
-
-                for match in pattern.finditer(body):
-
-                    matches["personal"].append(
-                        {
-                            "path": "raw-body",
-                            "key": pattern.pattern,
-                            "value": match.group(0),
-                        }
-                    )
-
         return matches
 
     def _add_response_issue(
@@ -375,6 +346,7 @@ class APITester:
         confidence,
         cwe,
         owasp,
+        verification_method,
     ):
 
         if not entries:
@@ -420,6 +392,7 @@ class APITester:
                 owasp=owasp,
 
                 verification="Potential",
+                verification_method=verification_method,
 
                 finding_key=(
                     "api-response"
@@ -582,9 +555,10 @@ class APITester:
                 response=response,
                 family="credentials",
                 entries=matches["credentials"],
-                confidence="High",
+                confidence="HIGH_CONFIDENCE",
                 cwe="CWE-200",
                 owasp="A01:2021 - Broken Access Control",
+                verification_method="Structured API response inspection",
             )
 
             self._add_response_issue(
@@ -602,9 +576,10 @@ class APITester:
                 response=response,
                 family="personal",
                 entries=matches["personal"],
-                confidence="Medium",
+                confidence="HIGH_CONFIDENCE",
                 cwe="CWE-200",
                 owasp="A01:2021 - Broken Access Control",
+                verification_method="Structured API response inspection",
             )
 
             self._add_response_issue(
@@ -622,9 +597,10 @@ class APITester:
                 response=response,
                 family="identifiers",
                 entries=matches["identifiers"],
-                confidence="Medium",
+                confidence="NEEDS_MANUAL_REVIEW",
                 cwe="CWE-200",
                 owasp="A01:2021 - Broken Access Control",
+                verification_method="Structured API response inspection",
             )
 
         # ----------------------------------

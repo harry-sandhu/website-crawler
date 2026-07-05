@@ -578,13 +578,15 @@ class BusinessLogicTester:
                             f"'{text_snippet(field.value)}'."
                         ),
 
-                        confidence="Medium",
+                        confidence="NEEDS_MANUAL_REVIEW",
 
                         cwe="CWE-840",
 
                         owasp="A04:2021 - Insecure Design",
 
                         fix_time="2-6 hours",
+
+                        verification_method="Static form review",
 
                         finding_key=key,
 
@@ -647,13 +649,15 @@ class BusinessLogicTester:
                             f"'{text_snippet(value)}'."
                         ),
 
-                        confidence="Medium",
+                        confidence="NEEDS_MANUAL_REVIEW",
 
                         cwe="CWE-840",
 
                         owasp="A04:2021 - Insecure Design",
 
                         fix_time="2-6 hours",
+
+                        verification_method="Captured request review",
 
                         finding_key=key,
 
@@ -770,13 +774,15 @@ class BusinessLogicTester:
                             "fees, or change order quantities."
                         ),
 
-                        confidence="High",
+                        confidence="VERIFIED",
 
                         cwe="CWE-840",
 
                         owasp="A04:2021 - Insecure Design",
 
                         fix_time="4-8 hours",
+
+                        verification_method="Request replay verification",
 
                         finding_key=(
                             "business-logic-confirmed"

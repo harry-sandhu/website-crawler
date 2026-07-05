@@ -424,6 +424,7 @@ class HTMLReportBuilder:
 
                 details = [
                     ("Verification", issue.verification),
+                    ("Verification Method", getattr(issue, "verification_method", "")),
                     ("Occurrences", issue.occurrences if getattr(issue, "occurrences", 0) else ""),
                     (
                         "Affected Items",

@@ -1,7 +1,10 @@
 from datetime import datetime
 from urllib.parse import urljoin
 
-from audit.fetcher import WebsiteFetcher
+try:
+    from audit.fetcher import WebsiteFetcher
+except ImportError:  # pragma: no cover - optional dependency in tests
+    WebsiteFetcher = None
 
 from .models import SecurityIssue
 from .shared import text_snippet
@@ -36,6 +39,11 @@ class SecurityTxtTester:
         self,
         website,
     ):
+
+        if WebsiteFetcher is None:
+            raise RuntimeError(
+                "WebsiteFetcher is unavailable because optional network dependencies are missing."
+            )
 
         fetcher = WebsiteFetcher()
 
@@ -114,7 +122,7 @@ class SecurityTxtTester:
             endpoint=url,
             page=website.url,
             evidence="No security.txt file returned a successful response.",
-            confidence="High",
+            confidence="INFORMATIONAL",
             impact=(
                 "Missing security contact metadata makes responsible "
                 "disclosure harder."
@@ -147,7 +155,7 @@ class SecurityTxtTester:
             page=website.url,
             response_code=status,
             evidence=evidence,
-            confidence="High",
+            confidence="INFORMATIONAL",
             impact=(
                 "Missing security metadata makes vulnerability disclosure "
                 "and communication less reliable."
@@ -186,7 +194,7 @@ class SecurityTxtTester:
                 endpoint=website.url,
                 page=website.url,
                 evidence=str(exc),
-                confidence="Low",
+                confidence="INFORMATIONAL",
                 impact=(
                     "Failed probes can hide whether the disclosure file is "
                     "published."
@@ -242,7 +250,7 @@ class SecurityTxtTester:
                 page=website.url,
                 response_code=found.get("status"),
                 evidence=text_snippet(content, 220),
-                confidence="High",
+                confidence="INFORMATIONAL",
                 impact=(
                     "Malformed files are difficult for security researchers to "
                     "consume reliably."
@@ -300,4 +308,3 @@ class SecurityTxtTester:
                 ),
                 text_snippet(content, 220),
             )
-

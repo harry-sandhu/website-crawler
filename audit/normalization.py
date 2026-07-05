@@ -2,6 +2,8 @@ from dataclasses import replace
 from collections import OrderedDict
 import re
 
+from audit.security.shared import normalize_confidence
+
 
 SEVERITY_ORDER = {
     "Critical": 0,
@@ -63,14 +65,14 @@ SECURITY_TOKENS = (
 
 CATEGORY_OVERRIDES = (
     ("Input Validation", "HTML Best Practices"),
+    ("Technology", "Detected Technologies"),
+    ("Security.txt", "Security Best Practices"),
     ("Headers", "Security"),
     ("Cookies", "Security"),
     ("SSL", "Security"),
     ("Session", "Security"),
     ("JWT", "Security"),
     ("Secrets", "Security"),
-    ("Technology", "Security"),
-    ("Security.txt", "Security"),
     ("Network", "Networking"),
     ("Console", "Performance"),
     ("Lighthouse", "Performance"),
@@ -197,6 +199,48 @@ def normalize_category(issue):
     category = issue.category or ""
     title = normalize_title(issue).lower()
 
+    if any(
+        token in title
+        for token in (
+            "autocomplete",
+            "pattern",
+            "maxlength",
+            "minlength",
+            "placeholder",
+            "missing input names",
+            "optional input fields",
+            "readonly and disabled fields",
+            "number field limits",
+            "file upload restrictions",
+            "hidden field default values",
+        )
+    ):
+        return "HTML/UX"
+
+    if any(
+        token in title
+        for token in (
+            "login form detected",
+            "registration form detected",
+            "password recovery flow detected",
+            "multi-factor authentication",
+            "oauth",
+            "sso",
+            "sign-on",
+            "jquery detected",
+            "wordpress detected",
+            "drupal detected",
+            "react detected",
+            "vue detected",
+            "angular detected",
+            "next.js detected",
+            "nuxt detected",
+            "bootstrap detected",
+            "tailwind detected",
+        )
+    ):
+        return "Detected Technologies"
+
     for source, target in CATEGORY_OVERRIDES:
         if category == source:
             if source == "Input Validation":
@@ -234,10 +278,34 @@ def normalize_severity(issue):
     if "hidden field contains default value" in title:
         return "Info"
 
+    if "sensitive hidden fields" in title:
+        return "Medium"
+
     if "missing autocomplete attributes" in title:
         return "Info"
 
     if "missing password autocomplete hints" in title:
+        return "Info"
+
+    if "login form detected" in title:
+        return "Info"
+
+    if "registration form detected" in title:
+        return "Info"
+
+    if "password recovery flow detected" in title:
+        return "Info"
+
+    if "multi-factor authentication indicator detected" in title:
+        return "Info"
+
+    if "oauth or sso integration detected" in title:
+        return "Info"
+
+    if "jquery detected" in title:
+        return "Info"
+
+    if "security.txt" in title:
         return "Info"
 
     if "missing pattern attributes" in title:
@@ -268,6 +336,47 @@ def normalize_severity(issue):
         return "Low"
 
     return raw_severity or "Info"
+
+
+def normalize_verification_method(issue):
+
+    title = normalize_title(issue).lower()
+    category = normalize_category(issue)
+
+    if getattr(issue, "verification", "") == "Confirmed":
+        return "Request replay verification"
+
+    if category == "Security":
+        if "header" in title:
+            return "HTTP header inspection"
+
+        if "cookie" in title or "session" in title:
+            return "Cookie and storage inspection"
+
+        if "jwt" in title:
+            return "Token structure and decode verification"
+
+        if "mixed content" in title:
+            return "Browser resource inspection"
+
+        if "security.txt" in title:
+            return "HTTP fetch verification"
+
+        if "api response" in title:
+            return "Structured response inspection"
+
+        return "Static evidence review"
+
+    if category == "Detected Technologies":
+        return "Static fingerprint review"
+
+    if category == "HTML/UX" or category == "HTML Best Practices":
+        return "Markup inspection"
+
+    if category == "Networking":
+        return "Browser network inspection"
+
+    return "Static evidence review"
 
 
 def issue_scope(issue):
@@ -383,6 +492,13 @@ def merge_issue(existing, incoming):
     if not existing.fix_time and incoming.fix_time:
         existing.fix_time = incoming.fix_time
 
+    if not existing.verification_method and getattr(
+        incoming,
+        "verification_method",
+        "",
+    ):
+        existing.verification_method = incoming.verification_method
+
     if VERIFICATION_ORDER.get(
         getattr(incoming, "verification", "Potential"),
         0,
@@ -411,6 +527,12 @@ def normalize_issues(issues):
             category=category,
             title=title,
             severity=severity,
+            confidence=normalize_confidence(
+                getattr(issue, "confidence", ""),
+                getattr(issue, "verification", ""),
+                title,
+                category,
+            ),
             finding_key=key,
             affected_items=list(
                 dict.fromkeys(
@@ -425,6 +547,9 @@ def normalize_issues(issues):
                 issue,
                 "verification",
                 "Potential",
+            ),
+            verification_method=normalize_verification_method(
+                issue,
             ),
         )
 

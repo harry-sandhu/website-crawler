@@ -48,11 +48,15 @@ CATEGORY_MULTIPLIERS = {
 
     "HTML Best Practices": 0.70,
 
+    "HTML/UX": 0.30,
+
     "Networking": 0.80,
 
     "Authentication": 1.10,
 
     "Business Logic": 1.10,
+
+    "Detected Technologies": 0.10,
 
     "Usability": 0.80,
 

@@ -244,11 +244,49 @@ class AuthenticationTester:
         fix_time="10 minutes",
     ):
 
+        category = "Authentication"
+
+        inventory_titles = {
+            "Login Form Detected",
+            "Registration Form Detected",
+            "Password Recovery Flow Detected",
+            "Multi-Factor Authentication Indicator Detected",
+            "Multi-Factor Authentication Detected",
+            "OAuth or SSO Integration Detected",
+        }
+
+        html_titles = {
+            "Password Managers May Be Disabled",
+            "Password Field Autocomplete Disabled",
+        }
+
+        password_titles = {
+            "Client-side Password Validation Not Observed",
+        }
+
+        if title in inventory_titles:
+            category = "Detected Technologies"
+            severity = "Info"
+            confidence = "INFORMATIONAL"
+            owasp = "A05:2021 - Security Misconfiguration"
+
+        elif title in html_titles:
+            category = "HTML/UX"
+            severity = "Info"
+            confidence = "INFORMATIONAL"
+            owasp = "A05:2021 - Security Misconfiguration"
+
+        elif title in password_titles:
+            category = "Authentication"
+            severity = "Info"
+            confidence = "INFORMATIONAL"
+            owasp = "A07:2021 - Identification and Authentication Failures"
+
         self._add_issue(
             report,
             severity=severity,
             title=title,
-            category="Authentication",
+            category=category,
             description=description,
             recommendation=recommendation,
             endpoint=form.action,
@@ -260,6 +298,7 @@ class AuthenticationTester:
             cwe=cwe,
             owasp=owasp,
             fix_time=fix_time,
+            verification_method="Form metadata inspection",
         )
 
     def _detect_login(
@@ -418,21 +457,20 @@ class AuthenticationTester:
             website,
             form,
             field,
-            "Info",
-            "Multi-Factor Authentication Indicator Detected",
-            "A form or page appears to include MFA-related controls.",
-            "Ensure MFA is enforced server-side and recovery factors are "
-            "handled securely.",
-            "MFA-related keywords were observed.",
-            confidence="Medium",
-            impact=(
-                "MFA indicators help identify authentication hardening "
-                "and recovery flows."
-            ),
-            cwe="CWE-200",
-            owasp="A07:2021 - Identification and Authentication Failures",
-            fix_time="5 minutes",
-        )
+                "Info",
+                "Multi-Factor Authentication Detected",
+                "A form or page appears to include MFA-related controls.",
+                "Keep MFA enforced server-side and protect recovery factors.",
+                "MFA-related keywords were observed.",
+                confidence="INFORMATIONAL",
+                impact=(
+                    "MFA is a positive security feature that strengthens "
+                    "account protection."
+                ),
+                cwe="CWE-200",
+                owasp="A07:2021 - Identification and Authentication Failures",
+                fix_time="5 minutes",
+            )
 
         return True
 
@@ -458,21 +496,21 @@ class AuthenticationTester:
             website,
             form,
             field,
-            "Info",
-            "OAuth or SSO Integration Detected",
-            "A form or page appears to offer federated login options.",
-            "Review OAuth, OIDC, SAML, and SSO flows for secure callback "
-            "validation and account linking behavior.",
-            "OAuth or SSO keywords were observed.",
-            confidence="High",
-            impact=(
-                "Federated login integrations can expose account-linking and "
-                "redirect vulnerabilities if misconfigured."
-            ),
-            cwe="CWE-601",
-            owasp="A07:2021 - Identification and Authentication Failures",
-            fix_time="5 minutes",
-        )
+                "Info",
+                "OAuth or SSO Integration Detected",
+                "A form or page appears to offer federated login options.",
+                "Review OAuth, OIDC, SAML, and SSO callback validation and "
+                "account linking behavior.",
+                "OAuth or SSO keywords were observed.",
+                confidence="INFORMATIONAL",
+                impact=(
+                    "Federated login options are common and should be tracked as "
+                    "part of the application inventory."
+                ),
+                cwe="CWE-601",
+                owasp="A07:2021 - Identification and Authentication Failures",
+                fix_time="5 minutes",
+            )
 
         return True
 
@@ -561,34 +599,29 @@ class AuthenticationTester:
 
         for field in self._password_fields(form):
 
-            if field.minlength is None or field.minlength < 8:
+            self._record_form_issue(
+                report,
+                website,
+                form,
+                field,
+                "Info",
+                "Client-side Password Validation Not Observed",
+                "A password field was present, but no server-side password "
+                "policy could be verified from the page alone.",
+                "Enforce password length, complexity, and reuse checks on the "
+                "server and keep client-side validation as a convenience only.",
+                "Password field metadata did not demonstrate server-side policy.",
+                confidence="INFORMATIONAL",
+                impact=(
+                    "Client-side hints alone do not prove a weak server-side "
+                    "password policy."
+                ),
+                cwe="CWE-521",
+                owasp="A07:2021 - Identification and Authentication Failures",
+                fix_time="10 minutes",
+            )
 
-                self._record_form_issue(
-                    report,
-                    website,
-                    form,
-                    field,
-                    "Medium",
-                    "Weak Password Policy Inferred",
-                    "A password field suggests a password policy weaker than "
-                    "recommended defaults.",
-                    "Require a minimum length of at least 12 characters "
-                    "for new or changed passwords and add server-side checks.",
-                    (
-                        "Password field metadata suggests a short or missing "
-                        "minimum length."
-                    ),
-                    confidence="Medium",
-                    impact=(
-                        "Weak password policy can lead to accounts protected by "
-                        "low-entropy passwords."
-                    ),
-                    cwe="CWE-521",
-                    owasp="A07:2021 - Identification and Authentication Failures",
-                    fix_time="10 minutes",
-                )
-
-                return
+            return
 
     def run(
         self,
@@ -660,4 +693,3 @@ class AuthenticationTester:
                 form,
                 combined_text,
             )
-

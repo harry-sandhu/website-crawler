@@ -104,13 +104,15 @@ class IDORTester:
                                     "attackers may access other users' resources."
                                 ),
 
-                                confidence="Medium",
+                                confidence="NEEDS_MANUAL_REVIEW",
 
                                 cwe="CWE-639",
 
                                 owasp="A01 Broken Access Control",
 
                                 fix_time="2-6 hours",
+
+                                verification_method="Form field inspection",
 
                             )
 
@@ -169,13 +171,15 @@ class IDORTester:
                                 "other users' data."
                             ),
 
-                            confidence="Medium",
+                            confidence="NEEDS_MANUAL_REVIEW",
 
                             cwe="CWE-639",
 
                             owasp="A01 Broken Access Control",
 
                             fix_time="2-6 hours",
+
+                            verification_method="URL parameter inspection",
 
                         )
 

@@ -402,7 +402,7 @@ class SSLTester:
                         "Older TLS versions are more likely to use weaker "
                         "ciphers and allow downgrade issues."
                     ),
-                    confidence="Medium",
+                    confidence="HIGH_CONFIDENCE",
                     cwe="CWE-327",
                     owasp="A02:2021 - Cryptographic Failures",
                     fix_time="30 minutes",
@@ -445,7 +445,7 @@ class SSLTester:
                         "Weak ciphers can reduce the confidentiality and "
                         "integrity of encrypted traffic."
                     ),
-                    confidence="Medium",
+                    confidence="HIGH_CONFIDENCE",
                     cwe="CWE-327",
                     owasp="A02:2021 - Cryptographic Failures",
                     fix_time="30 minutes",
@@ -480,7 +480,7 @@ class SSLTester:
                 endpoint=website.url,
                 page=website.url,
                 evidence=text_snippet(certificate_text, 220),
-                confidence="Low",
+                confidence="INFORMATIONAL",
                 impact=(
                     "Certificate metadata can help verify the site's "
                     "deployment posture."
@@ -540,7 +540,7 @@ class SSLTester:
                         endpoint=website.url,
                         page=website.url,
                         evidence=f"Certificate expires in {days:.1f} days.",
-                        confidence="Medium",
+                        confidence="HIGH_CONFIDENCE",
                         impact=(
                             "Expired certificates can break HTTPS access and "
                             "reduce user trust."
