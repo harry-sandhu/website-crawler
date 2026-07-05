@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 
 
 @dataclass
@@ -11,6 +11,11 @@ class Issue:
     recommendation: str
 
     evidence: str = ""
+    finding_key: str = ""
+    affected_item: str = ""
+    affected_items: list[str] = field(default_factory=list)
+    occurrences: int = 1
+    verification: str = "Potential"
 
     # Optional
     endpoint: str = ""

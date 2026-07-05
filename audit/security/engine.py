@@ -64,7 +64,9 @@ class SecurityEngine:
         # Active modules
         self.active_modules = [
 
-            BusinessLogicTester(),
+            BusinessLogicTester(
+                aggressive=aggressive,
+            ),
 
             XSSTester(),
 
@@ -139,6 +141,10 @@ class SecurityEngine:
 
         if self.aggressive:
 
+            active_start = len(
+                report.issues
+            )
+
             for module in self.active_modules:
 
                 try:
@@ -157,6 +163,18 @@ class SecurityEngine:
                         f"[Security] Finished active module: {module.__class__.__name__}",
                         flush=True,
                     )
+
+                    if any(
+                        getattr(issue, "verification", "") == "Confirmed"
+                        for issue in report.issues[active_start:]
+                    ):
+
+                        print(
+                            "[Security] Confirmed exploitability found; stopping active probing.",
+                            flush=True,
+                        )
+
+                        break
 
                 except Exception as e:
 

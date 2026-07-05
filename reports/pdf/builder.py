@@ -96,7 +96,11 @@ class PDFReportBuilder:
 
             low=score.low,
 
+            info=score.info,
+
             total_issues=score.total_issues,
+
+            raw_issues=score.raw_issues,
 
             browser=website.browser,
 
@@ -180,7 +184,9 @@ class PDFReportBuilder:
 
             ["Low", model.low],
 
-            ["Total Issues", model.total_issues],
+            ["Info", model.info],
+
+            ["Unique Findings", model.total_issues],
 
         ]
 
@@ -301,7 +307,40 @@ class PDFReportBuilder:
                         BODY,
                     )
                 )
-        
+
+                if getattr(issue, "verification", ""):
+
+                    story.append(
+                        Paragraph(
+                            f"<b>Verification:</b> {escape(issue.verification)}",
+                            SMALL,
+                        )
+                    )
+
+                if getattr(issue, "occurrences", 0):
+
+                    story.append(
+                        Paragraph(
+                            f"<b>Occurrences:</b> {issue.occurrences}",
+                            SMALL,
+                        )
+                    )
+
+                affected_items = getattr(
+                    issue,
+                    "affected_items",
+                    [],
+                )
+
+                if affected_items:
+
+                    story.append(
+                        Paragraph(
+                            f"<b>Affected Items:</b> {escape(', '.join(affected_items))}",
+                            SMALL,
+                        )
+                    )
+
                 if getattr(issue, "endpoint", ""):
         
                     story.append(

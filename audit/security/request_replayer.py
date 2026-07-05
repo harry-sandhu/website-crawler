@@ -1,5 +1,4 @@
 import copy
-import httpx
 import time
 
 from .models import RequestData
@@ -8,6 +7,11 @@ from urllib.parse import (
     urlparse,
     parse_qs,
 )
+
+try:
+    import httpx
+except ImportError:  # pragma: no cover - optional dependency in tests
+    httpx = None
 
 
 class RequestReplayer:
@@ -23,9 +27,25 @@ class RequestReplayer:
         self,
         request: RequestData,
     ):
-    
+
         start = time.perf_counter()
-    
+
+        if httpx is None:
+
+            elapsed = (
+                time.perf_counter() - start
+            ) * 1000
+
+            return {
+
+                "success": False,
+
+                "error": "httpx is not installed",
+
+                "response_time": elapsed,
+
+            }
+
         try:
 
             timeout = httpx.Timeout(

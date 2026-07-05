@@ -25,6 +25,7 @@ def print_summary(
     website,
     browser_data,
     score,
+    report=None,
 ):
 
     console.print(
@@ -52,8 +53,24 @@ def print_summary(
     )
 
     console.print(
-        f"Total Issues  : {score.total_issues}"
+        f"Info          : {getattr(score, 'info', 0)}"
     )
+
+    console.print(
+        f"Unique Findings: {score.total_issues}"
+    )
+
+    confirmed = sum(
+        1
+        for issue in getattr(report, "issues", [])
+        if getattr(issue, "verification", "") == "Confirmed"
+    )
+
+    if confirmed:
+
+        console.print(
+            f"Confirmed Exploits: {confirmed}"
+        )
 
     console.print()
 

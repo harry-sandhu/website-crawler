@@ -1,4 +1,9 @@
 from .models import SecurityIssue
+from .shared import (
+    is_framework_token_name,
+    looks_sensitive_token_name,
+    looks_sensitive_token_value,
+)
 
 
 class InputValidator:
@@ -9,71 +14,313 @@ class InputValidator:
 
     # ----------------------------------
 
+    def _form_key(self, form):
+
+        parts = [
+            form.id,
+            form.name,
+            form.action,
+            form.method,
+            form.url,
+        ]
+
+        return "|".join(
+            str(part or "").strip().lower()
+            for part in parts
+            if str(part or "").strip()
+        ) or "form"
+
+    def _field_label(self, field):
+
+        return (
+            field.name
+            or field.field_type
+            or "field"
+        )
+
+    def _title_family(self, title):
+
+        lower = (title or "").lower()
+
+        families = (
+            ("password managers may be disabled", "password-autocomplete"),
+            ("password field autocomplete disabled", "password-autocomplete"),
+            ("password autocomplete", "password-autocomplete"),
+            ("weak password policy", "password-policy"),
+            ("password field missing minimum length", "password-policy"),
+            ("autocomplete", "autocomplete"),
+            ("pattern", "pattern"),
+            ("minimum length", "minlength"),
+            ("maxlength", "maxlength"),
+            ("maximum length", "maxlength"),
+            ("placeholder", "placeholder"),
+            ("optional input field", "optional"),
+            ("missing name", "missing-name"),
+            ("unnamed input field", "missing-name"),
+            ("number field", "number-limits"),
+            ("hidden field contains default value", "hidden-default"),
+            ("sensitive hidden field", "hidden-sensitive"),
+            ("readonly", "readonly-disabled"),
+            ("disabled", "readonly-disabled"),
+            ("file upload", "file-upload"),
+            ("password", "password"),
+            ("token", "token"),
+            ("secret", "secret"),
+            ("auth", "auth"),
+        )
+
+        for needle, family in families:
+
+            if needle in lower:
+                return family
+
+        return lower.replace(" ", "-") or "finding"
+
+    def _normalized_category(self, category, title):
+
+        lower = (title or "").lower()
+
+        if "password" in lower:
+            return "Authentication"
+
+        if any(
+            token in lower
+            for token in (
+                "autocomplete",
+                "pattern",
+                "maxlength",
+                "minimum length",
+                "maximum length",
+                "placeholder",
+                "missing name",
+                "unnamed input",
+                "optional input",
+                "number field",
+                "hidden field contains default value",
+                "readonly",
+                "disabled",
+            )
+        ):
+            return "HTML Best Practices"
+
+        if any(
+            token in lower
+            for token in (
+                "login",
+                "register",
+                "reset",
+                "mfa",
+                "oauth",
+                "sso",
+            )
+        ):
+            return "Authentication"
+
+        if any(
+            token in lower
+            for token in (
+                "secret",
+                "sensitive",
+                "file validation",
+                "token",
+            )
+        ):
+            return "Security"
+
+        return category or "Input Validation"
+
+    def _normalized_severity(self, severity, title):
+
+        lower = (title or "").lower()
+
+        overrides = (
+            ("missing h1 heading", "Medium"),
+            ("hidden field contains default value", "Info"),
+            ("optional input field", "Info"),
+            ("autocomplete", "Info"),
+            ("placeholder missing", "Info"),
+            ("missing pattern", "Low"),
+            ("missing maxlength", "Low"),
+            ("missing minlength", "Low"),
+            ("number field missing step value", "Info"),
+            ("readonly", "Info"),
+            ("disabled", "Info"),
+            ("password field missing minimum length", "Medium"),
+            ("weak password policy inferred", "Medium"),
+            ("password autocomplete", "Info"),
+            ("sensitive hidden field detected", "Medium"),
+            ("sensitive field name detected", "Medium"),
+            ("server-side file validation required", "Medium"),
+        )
+
+        for needle, mapped in overrides:
+            if needle in lower:
+                return mapped
+
+        if (
+            severity == "Info"
+            and self._normalized_category(
+                "",
+                title,
+            ) == "Security"
+        ):
+            return "Low"
+
+        return severity or "Info"
+
+    def _merge_issue(self, existing, incoming):
+
+        existing.occurrences += max(
+            1,
+            int(
+                getattr(
+                    incoming,
+                    "occurrences",
+                    1,
+                )
+                or 1
+            ),
+        )
+
+        for item in getattr(
+            incoming,
+            "affected_items",
+            [],
+        ):
+            if item and item not in existing.affected_items:
+                existing.affected_items.append(
+                    item
+                )
+
+        if incoming.evidence:
+
+            evidence_lines = []
+
+            for value in (
+                existing.evidence,
+                incoming.evidence,
+            ):
+
+                for line in str(value or "").splitlines():
+
+                    line = line.strip()
+
+                    if line and line not in evidence_lines:
+                        evidence_lines.append(line)
+
+            existing.evidence = "\n".join(
+                evidence_lines[:8]
+            )
+
+        if getattr(
+            incoming,
+            "verification",
+            "",
+        ) == "Confirmed":
+
+            existing.verification = "Confirmed"
+
 
     def report_issue(
-    
         self,
-    
         report,
-    
         severity,
-    
         title,
-    
         description,
-    
         recommendation,
-    
         form,
-    
         field,
-    
         evidence="",
-    
         confidence="Low",
-    
         impact="",
-    
         cwe="CWE-20",
-    
         owasp="A05:2021 - Security Misconfiguration",
-    
         fix_time="15-30 minutes",
-    
+        category="Input Validation",
+        finding_key="",
+        affected_item="",
+        selector="",
+        page="",
+        occurrences=1,
     ):
-    
+
+        resolved_category = self._normalized_category(
+            category,
+            title,
+        )
+
+        resolved_severity = self._normalized_severity(
+            severity,
+            title,
+        )
+
+        form_key = self._form_key(
+            form,
+        )
+
+        resolved_selector = selector or f"form:{form_key}"
+
+        resolved_page = page or form.url or ""
+
+        resolved_finding_key = finding_key or "|".join(
+            [
+                resolved_category,
+                form_key,
+                self._title_family(title),
+            ]
+        )
+
+        resolved_affected_item = (
+            affected_item
+            or self._field_label(field)
+        )
+
+        issue = SecurityIssue(
+            severity=resolved_severity,
+            title=title,
+            category=resolved_category,
+            description=description,
+            recommendation=recommendation,
+            endpoint=form.action,
+            page=resolved_page,
+            selector=resolved_selector,
+            parameter=field.name,
+            evidence=evidence,
+            confidence=confidence,
+            impact=impact,
+            cwe=cwe,
+            owasp=owasp,
+            fix_time=fix_time,
+            finding_key=resolved_finding_key,
+            affected_item=resolved_affected_item,
+            affected_items=[
+                resolved_affected_item
+            ]
+            if resolved_affected_item
+            else [],
+            occurrences=max(
+                1,
+                int(occurrences or 1),
+            ),
+        )
+
+        for existing in report.issues:
+
+            if getattr(
+                existing,
+                "finding_key",
+                "",
+            ) == resolved_finding_key:
+
+                self._merge_issue(
+                    existing,
+                    issue,
+                )
+
+                return
+
         report.issues.append(
-    
-            SecurityIssue(
-    
-                severity=severity,
-    
-                title=title,
-    
-                category="Input Validation",
-    
-                description=description,
-    
-                recommendation=recommendation,
-    
-                endpoint=form.action,
-    
-                parameter=field.name,
-    
-                evidence=evidence,
-    
-                confidence=confidence,
-    
-                impact=impact,
-    
-                cwe=cwe,
-    
-                owasp=owasp,
-    
-                fix_time=fix_time,
-    
-            )
-    
+            issue
         )
     
 
@@ -84,143 +331,59 @@ class InputValidator:
         form,
         field,
     ):
-    
-        sensitive = {
-    
-            "price",
-    
-            "amount",
-    
-            "discount",
-    
-            "role",
-    
-            "admin",
-    
-            "userid",
-    
-            "user_id",
-    
-            "account",
-    
-            "accountid",
-    
-            "account_id",
-    
-            "wallet",
-    
-            "balance",
-    
-            "coupon",
-    
-            "promo",
-    
-            "giftcard",
-    
-            "points",
-    
-            "credit",
-    
-            "credits",
-    
-            "token",
-    
-            "session",
-    
-            "isadmin",
-    
-            "permission",
-    
-            "permissions",
-    
-            "quantity",
-    
-        }
-    
-        name = (
-            field.name or ""
-        ).lower()
-    
-        for keyword in sensitive:
-    
-            if keyword in name:
-    
-                self.report_issue(
-    
-                    report,
-    
-                    "Medium",
-    
-                    "Sensitive Hidden Field Detected",
-    
-                    (
-                        f"Hidden field '{field.name}' may contain "
-                        "security-sensitive data."
-                    ),
-    
-                    (
-                        "Do not trust hidden form fields for security decisions. "
-                        "Validate all values on the server."
-                    ),
-    
-                    form,
-    
-                    field,
-    
-                    evidence=(
-                        f"Hidden input name contains '{keyword}'."
-                    ),
-    
-                    confidence="Medium",
-    
-                    impact=(
-                        "Client-side hidden values can be modified before "
-                        "submission."
-                    ),
-    
-                    cwe="CWE-602",
-    
-                    owasp="A01:2021 - Broken Access Control",
-    
-                    fix_time="30-60 minutes",
-    
-                )
-    
-                break
-    
-        if field.value:
-    
+        name = (field.name or "").lower()
+        value = field.value or ""
+
+        if looks_sensitive_token_name(name) or looks_sensitive_token_value(value):
+
             self.report_issue(
-    
                 report,
-    
+                "Medium",
+                "Sensitive Hidden Field Detected",
+                (
+                    f"Hidden field '{field.name}' may contain sensitive data."
+                ),
+                (
+                    "Do not trust hidden form fields for security decisions. "
+                    "Validate all values on the server."
+                ),
+                form,
+                field,
+                evidence=(
+                    "Sensitive token-like name or value detected."
+                ),
+                confidence="Medium",
+                impact=(
+                    "Client-side hidden values can be modified before "
+                    "submission."
+                ),
+                cwe="CWE-602",
+                owasp="A01:2021 - Broken Access Control",
+                fix_time="30-60 minutes",
+                category="Security",
+            )
+
+        if field.value:
+
+            self.report_issue(
+                report,
                 "Info",
-    
                 "Hidden Field Contains Default Value",
-    
                 (
                     f"Hidden field '{field.name}' contains a preset value."
                 ),
-    
                 (
                     "Ensure preset values are validated on the server and "
                     "cannot be trusted solely because they originate from the client."
                 ),
-    
                 form,
-    
                 field,
-    
                 evidence=f"Default value: {field.value}",
-    
                 confidence="Low",
-    
                 cwe="CWE-602",
-    
                 owasp="A01:2021 - Broken Access Control",
-    
                 fix_time="10 minutes",
-    
+                category="HTML Best Practices",
             )
 
     def check_number(
@@ -841,38 +1004,7 @@ class InputValidator:
         form,
         field,
     ):
-    
-        suspicious = {
-    
-            "token",
-    
-            "secret",
-    
-            "apikey",
-    
-            "api_key",
-    
-            "jwt",
-    
-            "auth",
-    
-            "access_token",
-    
-            "refresh_token",
-    
-            "session",
-    
-            "sessionid",
-    
-            "csrf",
-    
-            "csrf_token",
-    
-        }
-    
-        name = (
-            field.name or ""
-        ).lower()
+        name = (field.name or "").lower()
     
         # ----------------------------------
         # Missing Name
@@ -946,49 +1078,47 @@ class InputValidator:
         # Suspicious Field Names
         # ----------------------------------
     
-        for keyword in suspicious:
-    
-            if keyword in name:
-    
-                self.report_issue(
-    
-                    report,
-    
-                    "Info",
-    
-                    "Sensitive Field Name Detected",
-    
-                    (
-                        f"Field '{field.name}' appears to contain "
-                        "security-related information."
-                    ),
-    
-                    (
-                        "Ensure sensitive values are never trusted "
-                        "solely because they originate from the client."
-                    ),
-    
-                    form,
-    
-                    field,
-    
-                    evidence=f"Matched keyword '{keyword}'.",
-    
-                    confidence="Medium",
-    
-                    impact=(
-                        "Client-side values can be modified before submission."
-                    ),
-    
-                    cwe="CWE-602",
-    
-                    owasp="A01:2021 - Broken Access Control",
-    
-                    fix_time="10 minutes",
-    
-                )
-    
-                break
+        if looks_sensitive_token_name(name):
+
+            self.report_issue(
+
+                report,
+
+                "Info",
+
+                "Sensitive Field Name Detected",
+
+                (
+                    f"Field '{field.name}' appears to contain "
+                    "security-related information."
+                ),
+
+                (
+                    "Ensure sensitive values are never trusted "
+                    "solely because they originate from the client."
+                ),
+
+                form,
+
+                field,
+
+                evidence="Name suggests a secret or credential.",
+
+                confidence="Medium",
+
+                impact=(
+                    "Client-side values can be modified before submission."
+                ),
+
+                cwe="CWE-602",
+
+                owasp="A01:2021 - Broken Access Control",
+
+                fix_time="10 minutes",
+
+                category="Security",
+
+            )
     
         # ----------------------------------
         # Readonly
@@ -1361,64 +1491,3 @@ class InputValidator:
                     form,
                     field,
                 )
-
-                report.issues.append(
-
-                            SecurityIssue(
-
-                                severity="Low",
-
-                                title="Number Field Has No Limits",
-
-                                category="Input Validation",
-
-                                description=(
-                                    f"Number field '{field.name}' does not "
-                                    "define any limits."
-                                ),
-
-                                recommendation=(
-                                    "Validate numeric ranges on both the client "
-                                    "and the server."
-                                ),
-
-                                endpoint=form.action,
-
-                                parameter=field.name,
-
-                            )
-
-                        )
-
-                # --------------------------
-                # Required Fields
-                # --------------------------
-
-                if not field.required:
-
-                    report.issues.append(
-
-                        SecurityIssue(
-
-                            severity="Info",
-
-                            title="Optional Input Field",
-
-                            category="Input Validation",
-
-                            description=(
-                                f"Field '{field.name}' is optional."
-                            ),
-
-                            recommendation=(
-                                "Verify that optional fields are intentionally "
-                                "optional."
-                            ),
-
-                            endpoint=form.action,
-
-                            parameter=field.name,
-
-                        )
-
-                    )

@@ -20,6 +20,8 @@
 
     --low:#16a34a;
 
+    --info:#0f766e;
+
     --shadow:0 6px 18px rgba(0,0,0,.08);
 
 }
@@ -317,6 +319,12 @@ header h1{
 
 }
 
+.issue.info{
+
+    border-left-color:var(--info);
+
+}
+
 .critical{
 
     color:var(--critical);
@@ -338,6 +346,12 @@ header h1{
 .low{
 
     color:var(--low);
+
+}
+
+.info{
+
+    color:var(--info);
 
 }
 
@@ -442,6 +456,12 @@ a:hover{
 .badge.low{
 
     background:var(--low);
+
+}
+
+.badge.info{
+
+    background:var(--info);
 
 }
 

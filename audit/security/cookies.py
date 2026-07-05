@@ -2,7 +2,12 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 
 from .models import SecurityIssue
-from .shared import parse_set_cookie_headers, text_snippet
+from .shared import (
+    is_framework_token_name,
+    looks_sensitive_token_value,
+    parse_set_cookie_headers,
+    text_snippet,
+)
 
 
 class CookiesTester:
@@ -24,7 +29,6 @@ class CookiesTester:
     WEAK_NAMES = {
         "session",
         "auth",
-        "token",
         "userid",
         "user",
         "login",
@@ -45,7 +49,6 @@ class CookiesTester:
         "laravel_session",
         "django_session",
         "auth",
-        "token",
     }
 
     def _add_issue(
@@ -79,6 +82,11 @@ class CookiesTester:
             cookie,
         )
 
+        if name == "token":
+            return looks_sensitive_token_value(
+                cookie.get("value", "")
+            )
+
         if name in self.SESSION_NAMES:
             return True
 
@@ -106,6 +114,9 @@ class CookiesTester:
         )
 
         if name in self.DEFAULT_NAMES:
+            return False
+
+        if name == "token" or is_framework_token_name(name):
             return False
 
         return name in self.WEAK_NAMES or any(

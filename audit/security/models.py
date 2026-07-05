@@ -138,6 +138,11 @@ class SecurityIssue:
     response_time: float | None = None
 
     evidence: str = ""
+    finding_key: str = ""
+    affected_item: str = ""
+    affected_items: list[str] = field(default_factory=list)
+    occurrences: int = 1
+    verification: str = "Potential"
 
     notes: str = ""
 

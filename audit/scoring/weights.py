@@ -19,6 +19,8 @@ SEVERITY_WEIGHTS = {
 
     "Low": 1,
 
+    "Info": 0,
+
 }
 
 
@@ -43,6 +45,16 @@ CATEGORY_MULTIPLIERS = {
     "Console": 0.50,
 
     "Lighthouse": 0.75,
+
+    "HTML Best Practices": 0.70,
+
+    "Networking": 0.80,
+
+    "Authentication": 1.10,
+
+    "Business Logic": 1.10,
+
+    "Usability": 0.80,
 
 }
 

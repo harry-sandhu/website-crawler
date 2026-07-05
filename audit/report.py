@@ -7,6 +7,9 @@ from audit.models import Issue
 class AuditReport:
     issues: list[Issue] = field(default_factory=list)
 
+    raw_issues: int = 0
+    unique_issues: int = 0
+
     seo_score: int | None = None
     performance_score: int | None = None
     accessibility_score: int | None = None

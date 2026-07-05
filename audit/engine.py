@@ -1,4 +1,5 @@
 from audit.report import AuditReport
+from audit.normalization import normalize_issues
 
 from audit.seo import run_seo_audit
 from audit.network import run_network_audit
@@ -103,5 +104,11 @@ class AuditEngine:
                 print(
                     f"[Audit Error] {module}: {e}"
                 )
+
+        report.raw_issues = len(report.issues)
+        report.issues = normalize_issues(
+            report.issues
+        )
+        report.unique_issues = len(report.issues)
 
         return report

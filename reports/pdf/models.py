@@ -28,11 +28,15 @@ class PDFReportModel:
 
     high: int
 
+    info: int
+
     medium: int
 
     low: int
 
     total_issues: int
+
+    raw_issues: int
 
     browser: dict
 

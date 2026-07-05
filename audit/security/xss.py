@@ -115,7 +115,7 @@ class XSSTester:
 
                             severity="High",
 
-                            title="Possible Reflected XSS",
+                            title="Confirmed Reflected XSS",
 
                             category="XSS",
 
@@ -155,6 +155,10 @@ class XSSTester:
                                 "Injected payload was reflected in the response body."
                             ),
 
+                            verification="Confirmed",
+
+                            notes="Yes, it is possible. The payload reflected in a live response.",
+
                             impact=(
                                 "An attacker may be able to execute arbitrary "
                                 "JavaScript in another user's browser."
@@ -170,5 +174,7 @@ class XSSTester:
 
                         )
                     )
+
+                    return
 
             replayed_requests += 1

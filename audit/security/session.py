@@ -1,5 +1,10 @@
 from .models import SecurityIssue
-from .shared import parse_set_cookie_headers, text_snippet
+from .shared import (
+    is_framework_token_name,
+    looks_sensitive_token_value,
+    parse_set_cookie_headers,
+    text_snippet,
+)
 
 
 class SessionTester:
@@ -17,14 +22,12 @@ class SessionTester:
         "laravel_session",
         "django_session",
         "auth",
-        "token",
         "jwt",
     }
 
     WEAK_NAMES = {
         "session",
         "auth",
-        "token",
         "sid",
         "user",
         "login",
@@ -66,6 +69,11 @@ class SessionTester:
 
         if name in self.SESSION_NAMES:
             return True
+
+        if name == "token":
+            return looks_sensitive_token_value(
+                cookie.get("value", "")
+            )
 
         return not (
             cookie.get("expires")
@@ -299,6 +307,9 @@ class SessionTester:
                         cwe="CWE-200",
                     )
 
+                elif name == "token" or is_framework_token_name(name):
+                    pass
+
                 elif name in self.WEAK_NAMES or any(
                     token in name
                     for token in ("session", "auth", "token")
@@ -458,4 +469,3 @@ class SessionTester:
                 owasp="A05:2021 - Security Misconfiguration",
                 fix_time="10 minutes",
             )
-

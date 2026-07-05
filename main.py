@@ -195,6 +195,7 @@ def main():
                     website,
                     browser_data,
                     score,
+                    report,
                 )
 
                 console.print(

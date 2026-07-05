@@ -17,6 +17,12 @@ class ScoreEngine:
 
         score = AuditScore()
 
+        score.raw_issues = getattr(
+            report,
+            "raw_issues",
+            len(report.issues),
+        )
+
         # ----------------------------------
         # Count Issues
         # ----------------------------------
@@ -40,6 +46,9 @@ class ScoreEngine:
 
             elif severity == "Low":
                 score.low += 1
+
+            elif severity == "Info":
+                score.info += 1
 
             category = issue.category
 
@@ -96,7 +105,10 @@ class ScoreEngine:
             )
 
         score.categories.sort(
-            key=lambda c: c.name
+            key=lambda c: (
+                c.score,
+                c.name,
+            )
         )
 
         # ----------------------------------

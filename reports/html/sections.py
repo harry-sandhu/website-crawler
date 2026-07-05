@@ -7,39 +7,16 @@ class SectionBuilder:
 
     CATEGORY_ORDER = [
 
-        "SEO",
-
-        "Performance",
-
-        "Accessibility",
-
-        "Responsive",
-
         "Security",
-
-        "Headers",
-
-        "Cookies",
-
+        "Input Validation",
+        "HTML Best Practices",
+        "Accessibility",
+        "SEO",
+        "Performance",
+        "Networking",
         "Authentication",
-
-        "SSL",
-
-        "Session",
-
-        "JWT",
-
-        "Secrets",
-
-        "Technology",
-
-        "Security.txt",
-
-        "Network",
-
-        "Console",
-
-        "Lighthouse",
+        "Business Logic",
+        "Usability",
 
     ]
 
@@ -71,8 +48,11 @@ class SectionBuilder:
 
                 grouped[category],
 
-                key=lambda issue: cls.severity_value(
-                    issue.severity
+                key=lambda issue: (
+                    cls.severity_value(
+                        issue.severity
+                    ),
+                    issue.title,
                 ),
 
             )
@@ -108,8 +88,11 @@ class SectionBuilder:
 
                         grouped[category],
 
-                        key=lambda issue: cls.severity_value(
-                            issue.severity
+                        key=lambda issue: (
+                            cls.severity_value(
+                                issue.severity
+                            ),
+                            issue.title,
                         ),
 
                     ),
@@ -132,6 +115,8 @@ class SectionBuilder:
             "Medium": 2,
 
             "Low": 3,
+
+            "Info": 4,
 
         }
 

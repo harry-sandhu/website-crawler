@@ -1,3 +1,5 @@
+from importlib import import_module
+
 from .models import (
     RequestData,
     FormField,
@@ -6,17 +8,6 @@ from .models import (
     SecurityReport,
 )
 
-from .engine import SecurityEngine
-from .headers import HeadersTester
-from .cookies import CookiesTester
-from .authentication import AuthenticationTester
-from .ssl import SSLTester
-from .technology import TechnologyTester
-from .session import SessionTester
-from .jwt import JWTTester
-from .secrets import SecretsTester
-from .security_txt import SecurityTxtTester
-
 __all__ = [
     "SecurityEngine",
     "RequestData",
@@ -24,6 +15,7 @@ __all__ = [
     "FormData",
     "SecurityIssue",
     "SecurityReport",
+    "APITester",
     "HeadersTester",
     "CookiesTester",
     "AuthenticationTester",
@@ -33,4 +25,45 @@ __all__ = [
     "JWTTester",
     "SecretsTester",
     "SecurityTxtTester",
+    "BusinessLogicTester",
 ]
+
+_LAZY_IMPORTS = {
+    "SecurityEngine": "audit.security.engine",
+    "APITester": "audit.security.api",
+    "HeadersTester": "audit.security.headers",
+    "CookiesTester": "audit.security.cookies",
+    "AuthenticationTester": "audit.security.authentication",
+    "SSLTester": "audit.security.ssl",
+    "TechnologyTester": "audit.security.technology",
+    "SessionTester": "audit.security.session",
+    "JWTTester": "audit.security.jwt",
+    "SecretsTester": "audit.security.secrets",
+    "SecurityTxtTester": "audit.security.security_txt",
+    "BusinessLogicTester": "audit.security.business_logic",
+}
+
+
+def __getattr__(name):
+
+    module_name = _LAZY_IMPORTS.get(
+        name
+    )
+
+    if not module_name:
+        raise AttributeError(
+            name
+        )
+
+    module = import_module(
+        module_name
+    )
+
+    value = getattr(
+        module,
+        name,
+    )
+
+    globals()[name] = value
+
+    return value

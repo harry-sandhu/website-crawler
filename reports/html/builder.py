@@ -226,15 +226,19 @@ class HTMLReportBuilder:
             category_scores=score.categories,
     
             critical=score.critical,
-    
+
             high=score.high,
-    
+
             medium=score.medium,
-    
+
             low=score.low,
-    
+
+            info=score.info,
+
             total_issues=score.total_issues,
-    
+
+            raw_issues=score.raw_issues,
+
             browser=website.browser,
     
             page=website.page,
@@ -323,10 +327,20 @@ class HTMLReportBuilder:
             "{{LOW}}",
             str(model.low),
         )
-    
+
+        html = html.replace(
+            "{{INFO}}",
+            str(model.info),
+        )
+
         html = html.replace(
             "{{TOTAL}}",
             str(model.total_issues),
+        )
+
+        html = html.replace(
+            "{{RAW}}",
+            str(model.raw_issues),
         )
     
         html = html.replace(
@@ -409,6 +423,14 @@ class HTMLReportBuilder:
                 """
 
                 details = [
+                    ("Verification", issue.verification),
+                    ("Occurrences", issue.occurrences if getattr(issue, "occurrences", 0) else ""),
+                    (
+                        "Affected Items",
+                        ", ".join(issue.affected_items)
+                        if getattr(issue, "affected_items", [])
+                        else "",
+                    ),
                     ("Endpoint", issue.endpoint),
                     ("Page", issue.page),
                     ("Selector", issue.selector),

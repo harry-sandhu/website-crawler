@@ -26,4 +26,8 @@ class AuditScore:
 
     low: int = 0
 
+    info: int = 0
+
     total_issues: int = 0
+
+    raw_issues: int = 0
