@@ -17,6 +17,24 @@ class SectionBuilder:
 
         "Security",
 
+        "Headers",
+
+        "Cookies",
+
+        "Authentication",
+
+        "SSL",
+
+        "Session",
+
+        "JWT",
+
+        "Secrets",
+
+        "Technology",
+
+        "Security.txt",
+
         "Network",
 
         "Console",

@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime
+from html import escape
 
 from .models import ReportModel
 from .sections import SectionBuilder
@@ -269,6 +270,11 @@ class HTMLReportBuilder:
         )
     # ----------------------------------
     
+    
+    # ----------------------------------
+
+
+
     def render(
         self,
         model,
@@ -277,10 +283,6 @@ class HTMLReportBuilder:
         html = self.template.read_text(
             encoding="utf-8"
         )
-    
-        # ----------------------------------
-        # Basic Information
-        # ----------------------------------
     
         html = html.replace(
             "{{TITLE}}",
@@ -297,18 +299,10 @@ class HTMLReportBuilder:
             model.generated_at,
         )
     
-        # ----------------------------------
-        # Overall Score
-        # ----------------------------------
-    
         html = html.replace(
             "{{OVERALL_SCORE}}",
             f"{model.overall_score:.1f}",
         )
-    
-        # ----------------------------------
-        # Issue Counts
-        # ----------------------------------
     
         html = html.replace(
             "{{CRITICAL}}",
@@ -335,10 +329,6 @@ class HTMLReportBuilder:
             str(model.total_issues),
         )
     
-        # ----------------------------------
-        # Screenshots
-        # ----------------------------------
-    
         html = html.replace(
             "{{DESKTOP}}",
             model.screenshots["desktop"]["normal"],
@@ -354,18 +344,10 @@ class HTMLReportBuilder:
             model.screenshots["iphone_15"]["normal"],
         )
     
-        # ----------------------------------
-        # Category Scores
-        # ----------------------------------
-    
         html = html.replace(
             "{{CATEGORY_SCORES}}",
             self.render_scores(model),
         )
-    
-        # ----------------------------------
-        # Audit Sections
-        # ----------------------------------
     
         html = html.replace(
             "{{SECTIONS}}",
@@ -373,7 +355,6 @@ class HTMLReportBuilder:
         )
     
         return html
-    # ----------------------------------
 
     def render_scores(
         self,
@@ -387,7 +368,7 @@ class HTMLReportBuilder:
             html += f"""
             <div class="score-card">
 
-                <div>{category.name}</div>
+                <div>{escape(category.name)}</div>
 
                 <div>{category.score:.1f}/100</div>
 
@@ -407,29 +388,67 @@ class HTMLReportBuilder:
 
         for section in model.sections:
 
-            html += f"<h2>{section.title}</h2>"
+            html += f"<h2>{escape(section.title)}</h2>"
 
             for issue in section.issues:
 
                 html += f"""
-                <div class="issue {issue.severity.lower()}">
+                <div class="issue {escape(issue.severity.lower())}">
 
-                    <h3>{issue.title}</h3>
+                    <h3>{escape(issue.title)}</h3>
 
-                    <p><b>Severity:</b> {issue.severity}</p>
+                    <p><b>Severity:</b> {escape(issue.severity)}</p>
 
-                    <p>{issue.description}</p>
+                    <p><b>Category:</b> {escape(issue.category)}</p>
+
+                    <p>{escape(issue.description)}</p>
 
                     <p><b>Recommendation:</b></p>
 
-                    <p>{issue.recommendation}</p>
+                    <p>{escape(issue.recommendation)}</p>
                 """
+
+                details = [
+                    ("Endpoint", issue.endpoint),
+                    ("Page", issue.page),
+                    ("Selector", issue.selector),
+                    ("Parameter", issue.parameter),
+                    ("Payload", issue.payload),
+                    ("Original Value", issue.original_value),
+                    ("Modified Value", issue.modified_value),
+                    (
+                        "Response Code",
+                        "" if issue.response_code is None else issue.response_code,
+                    ),
+                    (
+                        "Response Time",
+                        ""
+                        if issue.response_time is None
+                        else f"{issue.response_time:.2f} ms",
+                    ),
+                    ("Impact", issue.impact),
+                    ("Confidence", issue.confidence),
+                    ("CWE", issue.cwe),
+                    ("OWASP", issue.owasp),
+                    ("Estimated Fix", issue.fix_time),
+                    ("Notes", issue.notes),
+                    ("Screenshot", issue.screenshot),
+                ]
+
+                for label, value in details:
+
+                    if value in ("", None):
+                        continue
+
+                    html += f"""
+                    <p><b>{escape(label)}:</b> {escape(str(value))}</p>
+                    """
 
                 if issue.evidence:
 
                     html += f"""
 
-                    <pre>{issue.evidence}</pre>
+                    <pre>{escape(issue.evidence)}</pre>
 
                     """
 

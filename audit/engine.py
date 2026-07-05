@@ -3,15 +3,24 @@ from audit.report import AuditReport
 from audit.seo import run_seo_audit
 from audit.network import run_network_audit
 from audit.console import run_console_audit
-from audit.security import run_security_audit
 from audit.responsive import run_responsive_audit
 from audit.accessibility import run_accessibility_audit
 from audit.lighthouse import run_lighthouse_audit
+from audit.security import SecurityEngine
 
 
 class AuditEngine:
 
-    def __init__(self):
+    def __init__(
+        self,
+        aggressive=False,
+    ):
+
+        self.aggressive = aggressive
+
+        self.security_engine = SecurityEngine(
+            aggressive=aggressive,
+        )
 
         self.audit_modules = [
 
@@ -43,9 +52,9 @@ class AuditEngine:
             # Security
             # ----------------------------------
 
-            lambda website: run_security_audit(
+            lambda website: self.security_engine.run(
                 website
-            ),
+            ).issues,
 
             # ----------------------------------
             # Responsive
@@ -57,7 +66,7 @@ class AuditEngine:
             ),
 
             # ----------------------------------
-            # Accessibility (axe-core)
+            # Accessibility
             # ----------------------------------
 
             lambda website: run_accessibility_audit(
@@ -74,7 +83,10 @@ class AuditEngine:
 
         ]
 
-    def run(self, website):
+    def run(
+        self,
+        website,
+    ):
 
         report = AuditReport()
 
@@ -88,6 +100,8 @@ class AuditEngine:
 
             except Exception as e:
 
-                print(f"[Audit Error] {module}: {e}")
+                print(
+                    f"[Audit Error] {module}: {e}"
+                )
 
         return report

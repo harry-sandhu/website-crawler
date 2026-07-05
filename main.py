@@ -9,6 +9,30 @@ from audit.scoring import ScoreEngine
 from reports.json_report import save_json
 from reports.html import HTMLReportBuilder
 from reports.pdf import PDFReportBuilder
+import argparse
+
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument(
+    "--aggressive",
+    action="store_true",
+    help="Enable active security testing",
+)
+
+parser.add_argument(
+    "--headless",
+    action="store_true",
+    help="Run browser in headless mode",
+)
+
+parser.add_argument(
+    "--no-open",
+    action="store_true",
+    help="Don't automatically open the HTML report",
+)
+
+args = parser.parse_args()
 
 from utils.logger import (
     console,
@@ -71,7 +95,9 @@ def main():
         headless=False,
     )
 
-    engine = AuditEngine()
+    engine = AuditEngine(
+        aggressive=args.aggressive,
+    )
 
     score_engine = ScoreEngine()
 
@@ -204,6 +230,16 @@ def main():
                 console.print()
 
                 continue
+
+    except KeyboardInterrupt:
+
+        console.print()
+
+        console.print(
+            "[yellow]Audit interrupted by user.[/yellow]"
+        )
+
+        console.print()
 
     finally:
 
