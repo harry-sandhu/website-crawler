@@ -8,6 +8,12 @@ from audit.responsive import run_responsive_audit
 from audit.accessibility import run_accessibility_audit
 from audit.lighthouse import run_lighthouse_audit
 from audit.security import SecurityEngine
+from audit.visual import run_visual_audit, run_ai_review
+from audit.performance import run_performance_audit
+from audit.links import run_links_audit
+from audit.images import run_image_audit
+from audit.forms import run_form_audit
+from audit.contact import run_contact_audit
 
 
 class AuditEngine:
@@ -15,9 +21,13 @@ class AuditEngine:
     def __init__(
         self,
         aggressive=False,
+        ai_review=False,
+        max_pages=25,
     ):
 
         self.aggressive = aggressive
+        self.ai_review = ai_review
+        self.max_pages = max_pages
 
         self.security_engine = SecurityEngine(
             aggressive=aggressive,
@@ -75,6 +85,38 @@ class AuditEngine:
             ),
 
             # ----------------------------------
+            # Visual Design
+            # ----------------------------------
+
+            lambda website: run_visual_audit(
+                website.page_object,
+                website.screenshot_manager,
+            ),
+
+            # ----------------------------------
+            # Performance / Images
+            # ----------------------------------
+
+            run_performance_audit,
+            run_image_audit,
+
+            # ----------------------------------
+            # Links and site-wide checks
+            # ----------------------------------
+
+            lambda website: run_links_audit(
+                website,
+                self.max_pages,
+            ),
+
+            # ----------------------------------
+            # Forms / Contact / Trust
+            # ----------------------------------
+
+            run_form_audit,
+            run_contact_audit,
+
+            # ----------------------------------
             # Lighthouse
             # ----------------------------------
 
@@ -83,6 +125,12 @@ class AuditEngine:
             ),
 
         ]
+
+        if ai_review:
+
+            self.audit_modules.append(
+                run_ai_review
+            )
 
     def run(
         self,
@@ -101,8 +149,14 @@ class AuditEngine:
 
             except Exception as e:
 
+                name = getattr(
+                    module,
+                    "__name__",
+                    "module",
+                )
+
                 print(
-                    f"[Audit Error] {module}: {e}"
+                    f"[Audit Error] {name}: {type(e).__name__}: {e}"
                 )
 
         report.raw_issues = len(report.issues)

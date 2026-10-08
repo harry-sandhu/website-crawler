@@ -431,24 +431,32 @@ def normalize_confidence(
         return "HIGH_CONFIDENCE"
 
     if lowered_category in {
+        "html/ux",
+        "html best practices",
+        "detected technologies",
+        "security best practices",
+        "networking",
+    }:
+        return "INFORMATIONAL"
+
+    normalized = str(value or "").strip().upper().replace("-", "_")
+
+    # Deterministic checks (measured, not guessed) count by default.
+    if not normalized and lowered_category in {
         "seo",
         "performance",
         "accessibility",
         "responsive",
         "lighthouse",
         "network",
-        "html/ux",
-        "html best practices",
-        "detected technologies",
-        "security best practices",
-        "networking",
         "console",
-        "performance",
         "usability",
+        "visual design",
+        "links",
+        "forms",
+        "trust & compliance",
     }:
-        return "INFORMATIONAL"
-
-    normalized = str(value or "").strip().upper().replace("-", "_")
+        return "HIGH_CONFIDENCE"
 
     mapping = {
         "HIGH": "HIGH_CONFIDENCE",

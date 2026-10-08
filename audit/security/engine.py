@@ -18,6 +18,16 @@ from .jwt import JWTTester
 from .secrets import SecretsTester
 from .security_txt import SecurityTxtTester
 
+from .exposure import ExposureTester
+from .hardening import (
+    CORSTester,
+    HTTPMethodsTester,
+    SRITester,
+    EmailSecurityTester,
+)
+
+from urllib.parse import urljoin, urlparse
+
 from .request_replayer import RequestReplayer
 
 
@@ -59,6 +69,16 @@ class SecurityEngine:
 
             SecurityTxtTester(),
 
+            ExposureTester(),
+
+            CORSTester(),
+
+            HTTPMethodsTester(),
+
+            SRITester(),
+
+            EmailSecurityTester(),
+
         ]
 
         # Active modules
@@ -77,6 +97,22 @@ class SecurityEngine:
             IDORTester(),
 
         ]
+
+    # ----------------------------------
+
+    @staticmethod
+    def _in_scope(url, target):
+
+        host = (urlparse(url).hostname or "").lower()
+        base = (urlparse(target).hostname or "").lower()
+
+        strip = lambda h: h[4:] if h.startswith("www.") else h
+
+        host, base = strip(host), strip(base)
+
+        return bool(host) and (
+            host == base or host.endswith("." + base)
+        )
 
     # ----------------------------------
 
@@ -145,6 +181,25 @@ class SecurityEngine:
                 report.issues
             )
 
+            # Active payloads must only ever reach the audited site,
+            # never third-party services the page happens to load.
+            all_requests = report.requests
+
+            all_forms = report.forms
+
+            report.requests = [
+                r for r in all_requests
+                if self._in_scope(r.url, website.url)
+            ]
+
+            report.forms = [
+                f for f in all_forms
+                if self._in_scope(
+                    urljoin(website.url, f.action or ""),
+                    website.url,
+                )
+            ]
+
             for module in self.active_modules:
 
                 try:
@@ -164,22 +219,14 @@ class SecurityEngine:
                         flush=True,
                     )
 
-                    if any(
-                        getattr(issue, "verification", "") == "Confirmed"
-                        for issue in report.issues[active_start:]
-                    ):
-
-                        print(
-                            "[Security] Confirmed exploitability found; stopping active probing.",
-                            flush=True,
-                        )
-
-                        break
 
                 except Exception as e:
 
                     print(
                         f"[Security Error] {module.__class__.__name__}: {e}"
                     )
+
+            report.requests = all_requests
+            report.forms = all_forms
 
         return report

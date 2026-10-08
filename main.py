@@ -32,6 +32,19 @@ parser.add_argument(
     help="Don't automatically open the HTML report",
 )
 
+parser.add_argument(
+    "--ai-review",
+    action="store_true",
+    help="Add an AI design critique (needs ANTHROPIC_API_KEY)",
+)
+
+parser.add_argument(
+    "--pages",
+    type=int,
+    default=25,
+    help="Max internal pages to sample for site-wide SEO checks (1 = homepage only)",
+)
+
 args = parser.parse_args()
 
 from utils.logger import (
@@ -92,11 +105,13 @@ def main():
     urls = load_urls()
 
     crawler = WebsiteCrawler(
-        headless=False,
+        headless=args.headless,
     )
 
     engine = AuditEngine(
         aggressive=args.aggressive,
+        ai_review=args.ai_review,
+        max_pages=args.pages,
     )
 
     score_engine = ScoreEngine()
@@ -179,7 +194,7 @@ def main():
                 # Open HTML Report
                 # ----------------------------------
 
-                if AUTO_OPEN_REPORT:
+                if AUTO_OPEN_REPORT and not args.no_open:
 
                     webbrowser.open(
                         Path(

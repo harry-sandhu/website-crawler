@@ -36,7 +36,7 @@ def inspect_dom(page):
 
                 id: el.id || "",
 
-                classes: el.className || "",
+                classes: (typeof el.className === "string" ? el.className : (el.getAttribute("class") || "")),
 
                 selector: buildSelector(el),
 

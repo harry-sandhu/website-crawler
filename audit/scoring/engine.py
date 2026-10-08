@@ -8,6 +8,7 @@ from .weights import (
     MIN_SCORE,
     SEVERITY_WEIGHTS,
     CATEGORY_MULTIPLIERS,
+    AUDITED_CATEGORIES,
 )
 
 from audit.security.shared import confidence_is_scoreworthy, normalize_confidence
@@ -29,7 +30,10 @@ class ScoreEngine:
         # Count Issues
         # ----------------------------------
 
-        categories = {}
+        categories = {
+            name: {"score": MAX_SCORE, "deductions": 0}
+            for name in AUDITED_CATEGORIES
+        }
 
         for issue in report.issues:
 

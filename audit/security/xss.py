@@ -101,8 +101,18 @@ class XSSTester:
 
                         continue
 
+                    # Only an HTML response can execute injected markup;
+                    # JSON, JS, CSS and plain text reflections are harmless.
+                    content_type = str(
+                        response.get("headers", {}).get(
+                            "content-type",
+                            "",
+                        )
+                    ).lower()
+
                     reflected = (
                         payload in response["body"]
+                        and "html" in content_type
                     )
 
                     if not reflected:

@@ -82,7 +82,9 @@ def run_network_audit(browser_data):
 
     mixed = []
 
-    if not website.url.lower().startswith("https://"):
+    page_url = responses[0]["url"] if responses else ""
+
+    if not page_url.lower().startswith("https://"):
         mixed = []
     else:
 

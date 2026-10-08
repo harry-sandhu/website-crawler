@@ -60,6 +60,14 @@ CATEGORY_MULTIPLIERS = {
 
     "Usability": 0.80,
 
+    "Visual Design": 1.00,
+
+    "Links": 0.90,
+
+    "Forms": 0.70,
+
+    "Trust & Compliance": 0.80,
+
 }
 
 
@@ -68,3 +76,34 @@ CATEGORY_MULTIPLIERS = {
 # ==========================================
 
 MIN_SCORE = 0
+
+
+# ==========================================
+# Categories that are always audited
+# (they start at 100 even with zero issues,
+# so a clean category lifts the overall score)
+# ==========================================
+
+AUDITED_CATEGORIES = [
+
+    "SEO",
+
+    "Performance",
+
+    "Security",
+
+    "Accessibility",
+
+    "Responsive",
+
+    "Visual Design",
+
+    "Links",
+
+    "Network",
+
+    "Console",
+
+    "Trust & Compliance",
+
+]

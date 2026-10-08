@@ -289,3 +289,39 @@ FUTURE IDEAS
 ⬜ WordPress Plugin
 ⬜ VS Code Extension
 ⬜ Chrome Extension
+
+============================================================
+PHASE 3 — VISUAL, PERFORMANCE, SITE-WIDE & HARDENING ✅
+============================================================
+
+Visual Design (audit/visual)
+--------------------
+✅ Contrast, typography, palette, line length
+✅ Broken / blurry / stretched images
+✅ Above-the-fold: headline, CTA, hero visual
+✅ Overlays, overlapping elements, horizontal scroll
+✅ Blank / empty first-screen detection (Pillow)
+✅ Optional AI design review (--ai-review)
+
+Performance
+--------------------
+✅ LCP, CLS, FCP, TTFB, blocking time, DOM size
+✅ Page weight, compression, caching, render-blocking JS
+✅ Image weight, formats, dimensions, lazy loading
+
+Site-wide
+--------------------
+✅ Broken internal / external links, redirect chains
+✅ Duplicate titles & descriptions, noindex, thin pages
+✅ Soft-404 detection
+
+Content & Compliance
+--------------------
+✅ Forms: labels, types, spam protection, GDPR consent
+✅ Contact info, privacy/legal links, cookie consent
+
+Security additions
+--------------------
+✅ Exposed files (.git, .env, backups, dumps, phpinfo ...)
+✅ Directory listing, CORS, HTTP methods
+✅ Subresource integrity, SPF / DMARC

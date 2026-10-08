@@ -70,7 +70,7 @@ class NormalizationTests(unittest.TestCase):
 
         self.assertEqual(len(normalized), 1)
         issue = normalized[0]
-        self.assertEqual(issue.category, "HTML Best Practices")
+        self.assertEqual(issue.category, "HTML/UX")
         self.assertEqual(issue.title, "Missing autocomplete attributes")
         self.assertEqual(issue.occurrences, 2)
         self.assertCountEqual(issue.affected_items, ["email", "phone"])

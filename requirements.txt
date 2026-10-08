@@ -14,3 +14,6 @@ rich==15.0.0
 soupsieve==2.8.4
 typing_extensions==4.15.0
 urllib3==2.7.0
+
+Pillow>=10
+dnspython>=2.6

@@ -1,5 +1,6 @@
 from browser.browser import BrowserManager
 from browser.screenshots import ScreenshotManager
+from browser.reveal import reveal_content
 
 from audit.collector import collect_page_data
 from audit.fetcher import WebsiteFetcher
@@ -55,6 +56,12 @@ class WebsiteCrawler:
             3000
         )
     
+        # Trigger scroll-reveal animations and lazy images
+
+        reveal_content(
+            page
+        )
+
         # ----------------------------------
         # Collect Page Data
         # ----------------------------------
